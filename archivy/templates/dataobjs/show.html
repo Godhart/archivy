@@ -309,7 +309,7 @@
           let payload = {
             method: "PUT",
             body: JSON.stringify({
-              "dataobj_id": {{dataobj['id']}},
+              "dataobj_id": "{{dataobj['id']}}",
               "tag": tagname
             }),
             headers: {

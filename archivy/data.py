@@ -43,8 +43,19 @@ FILE_GLOB = "[0-9]*-*.md"
 
 def get_by_id(dataobj_id):
     """Returns filename of dataobj of given id"""
-    results = list(get_data_dir().rglob(f"{dataobj_id}-*.md"))
+    dataobj_id = dataobj_id.replace("--", "/")
+    results = list(get_data_dir().rglob(f"{dataobj_id}.md"))
     return results[0] if results else None
+
+
+def load_data(filepath):
+    data = frontmatter.load(filepath)
+    if not isinstance(filepath, Path):
+        filepath = Path(filepath)
+    relative_path = filepath.relative_to(get_data_dir())
+    id = str(relative_path).replace("/", "--")[:-3]
+    data["id"] = id
+    return data
 
 
 def build_dir_tree(path, query_dir, load_content=True):
@@ -75,7 +86,7 @@ def build_dir_tree(path, query_dir, load_content=True):
                 current_dir.child_dirs[last_seg] = Directory(last_seg)
             current_dir = current_dir.child_dirs[last_seg]
         elif last_seg.endswith(".md"):
-            data = frontmatter.load(filepath)
+            data = load_data(filepath)
             if not load_content:
                 data.content = ""
             current_dir.child_files.append(data)
@@ -107,7 +118,7 @@ def get_items(
     else:
         datacont = []
         for filepath in query_dir.rglob("*.md"):
-            data = frontmatter.load(filepath)
+            data = load_data(filepath)
             if not load_content:
                 data.content = ""
             data["fullpath"] = str(filepath.parent.relative_to(query_dir))
@@ -152,7 +163,7 @@ def get_item(dataobj_id):
     """Returns a Post object with the given dataobjs' attributes"""
     file = get_by_id(dataobj_id)
     if file:
-        data = frontmatter.load(file)
+        data = load_data(file)
         data["fullpath"] = str(file)
         data["dir"] = str(file.parent.relative_to(get_data_dir()))
         # replace . for root items to ''
@@ -241,7 +252,7 @@ def update_item_md(dataobj_id, new_content):
     from archivy.models import DataObj
 
     filename = get_by_id(dataobj_id)
-    dataobj = frontmatter.load(filename)
+    dataobj = load_data(filename)
     dataobj["modified_at"] = datetime.now().strftime("%x %H:%M")
     dataobj.content = new_content
     md = frontmatter.dumps(dataobj)
@@ -274,7 +285,7 @@ def update_item_frontmatter(dataobj_id, new_frontmatter):
     from archivy.models import DataObj
 
     filename = get_by_id(dataobj_id)
-    dataobj = frontmatter.load(filename)
+    dataobj = load_data(filename)
     for key in list(new_frontmatter):
         dataobj[key] = new_frontmatter[key]
     dataobj["modified_at"] = datetime.now().strftime("%x %H:%M")
@@ -386,7 +397,7 @@ def unformat_file(path: str, out_dir: str):
             unformat_file(filename, str(out_dir))
 
     else:
-        dataobj = frontmatter.load(str(path))
+        dataobj = load_data(str(path))
 
         try:
             # get relative path of object in `data` dir

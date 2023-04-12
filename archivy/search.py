@@ -7,6 +7,10 @@ from flask import current_app
 
 from archivy.helpers import get_elastic_client
 
+# FIXME: ugly hack to make sure the app path is evaluated at the right time
+def get_data_dir():
+    """Returns the directory where dataobjs are stored"""
+    return Path(current_app.config["USER_DIR"]) / "data"
 
 # Example command ["rg", RG_MISC_ARGS, RG_FILETYPE, RG_REGEX_ARG, query, str(get_data_dir())]
 #  rg -il -t md -e query files
@@ -99,7 +103,7 @@ def parse_ripgrep_line(line):
         curr_file = (
             Path(hit["data"]["path"]["text"]).parts[-1].replace(".md", "").split("-")
         )  # parse target note data from path
-        curr_id = int(curr_file[0])
+        curr_id = str(Path(hit["data"]["path"]["text"]).relative_to(get_data_dir())).replace("/", "--")[:-3]
         title = curr_file[-1].replace("_", " ")
         data = {"title": title, "matches": [], "id": curr_id}
     elif hit["type"] == "match":

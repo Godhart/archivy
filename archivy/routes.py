@@ -173,7 +173,7 @@ def show_tag(tag_name):
     )
 
 
-@app.route("/dataobj/<int:dataobj_id>")
+@app.route("/dataobj/<dataobj_id>")
 def show_dataobj(dataobj_id):
     dataobj = data.get_item(dataobj_id)
     get_title_id_pairs = lambda x: (x["title"], x["id"])
@@ -239,7 +239,7 @@ def show_dataobj(dataobj_id):
     )
 
 
-@app.route("/dataobj/move/<int:dataobj_id>", methods=["POST"])
+@app.route("/dataobj/move/<dataobj_id>", methods=["POST"])
 def move_item(dataobj_id):
     form = forms.MoveItemForm()
     out_dir = form.path.data if form.path.data != "" else "root directory"
@@ -261,7 +261,7 @@ def move_item(dataobj_id):
         return redirect(f"/dataobj/{dataobj_id}")
 
 
-@app.route("/dataobj/delete/<int:dataobj_id>", methods=["POST"])
+@app.route("/dataobj/delete/<dataobj_id>", methods=["POST"])
 def delete_data(dataobj_id):
     try:
         data.delete_item(dataobj_id)

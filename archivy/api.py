@@ -87,7 +87,7 @@ def create_note():
     return Response(status=400)
 
 
-@api_bp.route("/dataobjs/<int:dataobj_id>")
+@api_bp.route("/dataobjs/<dataobj_id>")
 def get_dataobj(dataobj_id):
     """Returns dataobj of given id"""
     dataobj = data.get_item(dataobj_id)
@@ -104,7 +104,7 @@ def get_dataobj(dataobj_id):
     )
 
 
-@api_bp.route("/dataobjs/<int:dataobj_id>", methods=["DELETE"])
+@api_bp.route("/dataobjs/<dataobj_id>", methods=["DELETE"])
 def delete_dataobj(dataobj_id):
     """Deletes object of given id"""
     if not data.get_item(dataobj_id):
@@ -113,7 +113,7 @@ def delete_dataobj(dataobj_id):
     return Response(status=204)
 
 
-@api_bp.route("/dataobjs/<int:dataobj_id>", methods=["PUT"])
+@api_bp.route("/dataobjs/<dataobj_id>", methods=["PUT"])
 def update_dataobj(dataobj_id):
     """
     Updates object of given id.
@@ -131,7 +131,7 @@ def update_dataobj(dataobj_id):
     return Response("Must provide content parameter", status=401)
 
 
-@api_bp.route("/dataobjs/frontmatter/<int:dataobj_id>", methods=["PUT"])
+@api_bp.route("/dataobjs/frontmatter/<dataobj_id>", methods=["PUT"])
 def update_dataobj_frontmatter(dataobj_id):
     """
     Updates frontmatter of object of given id.
