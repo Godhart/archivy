@@ -540,6 +540,12 @@
         let srSaveBtn = document.getElementById("sr-savebutton");
         srSaveBtn.onclick = screenReaderSave;
         {{ js_ext | safe }}
+
+        /* Toggle lazyrender */
+        (function(){
+          Renderer.render_by_clsid("lazyrender");
+          setTimeout(arguments.callee, 100);
+        })();
       })  // window.addEventListener("load")
 
 

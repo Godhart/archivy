@@ -5,6 +5,7 @@
 </script>
 <script src="/static/highlight.js"></script> 
 <script src="/static/parser.js"></script>
+<script src="/static/render.js"></script>
 <script>
   window.parser = window.markdownit({
       {# The lower is needed to make JS understand Python bools #}
@@ -18,6 +19,14 @@
                     hljs.highlight(lang, str, true).value +
                     '</code></pre>';
           } catch (__) {}
+        } else if (lang && Renderer.supported(lang)) {
+          try {
+            return Renderer.render_div(lang, "{{ dataobj['id']}}", str, "lazyrender")
+          } catch (__) {}
+        } else {
+            return '<pre class="hljs"><code>' +
+                    str +
+                    '</code></pre>';
         }
       }
   })
