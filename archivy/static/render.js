@@ -41,12 +41,48 @@ class Renderer {
         })
     }
 
+    static wavedrom_id = 0;
+    static wavedrom_notFirstSignal = false;
+
+    static render_wavedrom(kind, objid, content, datanode) {
+        return new Promise((resolve, reject) => {
+            // NOTE: code is based on WaveDrom.ProcessAll function (second pass)
+            const id = datanode.getAttribute("data-wavedrom-idx");
+            const obj = WaveDrom.eva(`InputJSON_${id}`);
+            WaveDrom.RenderWaveForm(id, obj, 'WaveDrom_Display_', this.wavedrom_notFirstSignal)
+            if (obj && obj.signal && !this.wavedrom_notFirstSignal) {
+                this.wavedrom_notFirstSignal = true;
+            }
+            // TODO: appendSaveAsDialog(id, 'WaveDrom_Display_')
+            resolve({
+                "ok": true,
+                "data": null    // NOTE: return null since content is already rendered
+            })
+        })
+    }
+
+    static custom_div_wavedrom (kind, objid, content, clsid) {
+        const id = this.wavedrom_id;
+        this.wavedrom_id += 1;
+        // NOTE: code is based on WaveDrom.ProcessAll function (first pass)
+        return `
+<div class="${clsid}" data-kind="${kind}" data-objid="${objid}" data-needs-update="true" data-wavedrom-idx="${id}">
+<div id="WaveDrom_Display_${id}" class="lazyrender-result"></div>
+<script type="WaveDrom" id="InputJSON_${id}">${content}</script>
+<div class="lazyrender-content" style="display:none;"></div>
+</div>`
+    }
+
     static renders() { return {
         "raw": {
-            "function" : this.render_raw
+            "function"  : this.render_raw
         },
-        "render-visio" : {
-            "function" : this.render_ssr
+        "ssr" : {
+            "function"  : this.render_ssr
+        },
+        "wavedrom" : {
+            "function"  : this.render_wavedrom,
+            "custom_div": this.custom_div_wavedrom,
         }
     }}
 
@@ -58,12 +94,14 @@ class Renderer {
         return this.renders()[kind] !== undefined
     }
 
-    static render (kind, objid, content, target) {
+    static render (kind, objid, content, target, datanode) {
         console.log(`render(${kind}, ${objid}, ${content}, ${target})`)
         if (this.renders()[kind] !== undefined) {
-            this.renders()[kind].function(kind, objid, content)
+            this.renders()[kind].function(kind, objid, content, datanode)
             .then((response) => {
-                    target.innerHTML = response.data
+                    if (response.data != null) {
+                        target.innerHTML = response.data
+                    }
                 }
             )
             .catch((err) => {
@@ -77,11 +115,15 @@ class Renderer {
     }
 
     static render_div(kind, objid, content, clsid) {
-        return `</code></pre>
+        if (this.renders()[kind].custom_div !== undefined) {
+            return this.renders()[kind].custom_div(kind, objid, content, clsid)
+        } else {
+            return `</code></pre>
 <div class="${clsid}" data-kind="${kind}" data-objid="${objid}" data-needs-update="true">
 <pre style="display:none;"><code class="lazyrender-content">${content}</code></pre>
 <div class="lazyrender-result"></div>
 </div><pre><code>`
+        }
     }
 
     static render_by_clsid(clsid) {
@@ -99,7 +141,7 @@ class Renderer {
             if (target.length != 1) {
                 continue
             }
-            this.render(item.getAttribute("data-kind"), item.getAttribute("data-objid"), content[0].innerHTML, target[0])
+            this.render(item.getAttribute("data-kind"), item.getAttribute("data-objid"), content[0].innerHTML, target[0], item)
             item.setAttribute("data-needs-update", "false")
         }
     }

@@ -6,6 +6,17 @@
 <script src="/static/highlight.js"></script> 
 <script src="/static/parser.js"></script>
 <script src="/static/render.js"></script>
+{% if config.THEME_CONF.get('use_theme_dark', False) %}
+<script src="/static/wavedrom/skins/dark.min.js"></script>
+{% endif %}
+{% if not config.THEME_CONF.get('use_theme_dark', False) %}
+<script src="/static/wavedrom/skins/default.min.js"></script>
+{% endif %}
+<script src="/static/wavedrom/wavedrom.min.js"></script>
+<!--
+<script src="/static/wavedrom/skins/lowkey.min.js"></script>
+<script src="/static/wavedrom/skins/narrow.min.js"></script>
+-->
 <script>
   window.parser = window.markdownit({
       {# The lower is needed to make JS understand Python bools #}
