@@ -49,9 +49,9 @@ class Renderer {
             // NOTE: code is based on WaveDrom.ProcessAll function (second pass)
             const id = datanode.getAttribute("data-wavedrom-idx");
             const obj = WaveDrom.eva(`InputJSON_${id}`);
-            WaveDrom.RenderWaveForm(id, obj, 'WaveDrom_Display_', this.wavedrom_notFirstSignal)
-            if (obj && obj.signal && !this.wavedrom_notFirstSignal) {
-                this.wavedrom_notFirstSignal = true;
+            WaveDrom.RenderWaveForm(id, obj, 'WaveDrom_Display_', Renderer.wavedrom_notFirstSignal)
+            if (obj && obj.signal && !Renderer.wavedrom_notFirstSignal) {
+                Renderer.wavedrom_notFirstSignal = true;
             }
             // TODO: appendSaveAsDialog(id, 'WaveDrom_Display_')
             resolve({
@@ -62,8 +62,8 @@ class Renderer {
     }
 
     static custom_div_wavedrom (kind, objid, content, clsid) {
-        const id = this.wavedrom_id;
-        this.wavedrom_id += 1;
+        const id = Renderer.wavedrom_id;
+        Renderer.wavedrom_id += 1;
         // NOTE: code is based on WaveDrom.ProcessAll function (first pass)
         return `
 <div class="${clsid}" data-kind="${kind}" data-objid="${objid}" data-needs-update="true" data-wavedrom-idx="${id}">
