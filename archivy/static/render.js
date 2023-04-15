@@ -15,10 +15,29 @@ class Renderer {
 
     static render_ssr(kind, objid, content) {
         return new Promise((resolve, reject) => {
-            resolve({
-                "ok": true,
-                "data": `<pre>TODO: Render Visio Doc</pre>`
+            fetch(`/api/render`, {
+                "method": "POST",
+                "body": JSON.stringify({
+                    "kind": kind,
+                    "objid": objid,
+                    "content": content,
+                }),
+                "headers": {
+                    "Accept": "application/json",
+                    "Content-type": "application/json; charset=UTF-8"
+                },
             })
+            .then((response) => {
+                if (response.ok) {
+                    response.json()
+                    .then((json) => resolve({"ok": true, "data": json.data}))
+                } else {
+                    let msg = `render request error: ${response.status} - ${response.statusText}`
+                    console.error(msg)
+                    reject({"message":msg})
+                }
+            })
+            .catch((err) => {console.error(`render error: ${err.message}`); reject(err) });
         })
     }
 

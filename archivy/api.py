@@ -1,4 +1,4 @@
-from flask import Response, jsonify, request, Blueprint, current_app
+from flask import Response, jsonify, request, Blueprint, current_app, json
 from werkzeug.security import check_password_hash
 from flask_login import login_user
 from tinydb import Query
@@ -7,6 +7,7 @@ from archivy import data, tags
 from archivy.search import search
 from archivy.models import DataObj, User
 from archivy.helpers import get_db
+from archivy.render import render as ssr
 
 
 api_bp = Blueprint("api", __name__)
@@ -243,3 +244,32 @@ def image_upload():
         saved_to = data.save_image(image)
         return jsonify({"data": {"filePath": f"/images/{saved_to}"}}), 200
     return jsonify({"error": "415"}), 415
+
+
+@api_bp.route("/render", methods=["POST"])
+def render():
+    """
+    Server side rendering for fenced code
+
+    Parameter in JSON body:
+     - **kind**:    (required) - renderer kind
+     - **objid**:   (required) - id of object for which rendering is done
+     - **content**: (required) - source content to render
+    """
+    kind    = request.json.get("kind")
+    objid   = request.json.get("objid")
+    content = request.json.get("content")
+    # TODO: check args
+    try:
+        if False:
+            return Response("TODO", status=400)
+    except FileExistsError:
+        return Response("TODO", status=400)
+    result = ssr("TODO: get data from request")
+    response = Response(
+        response=json.dumps({"data": result}),
+        status=200,
+        mimetype="application/json",
+    )
+    return response
+
