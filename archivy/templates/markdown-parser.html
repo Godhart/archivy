@@ -32,7 +32,8 @@
           } catch (__) {}
         } else if (lang && Renderer.supported(lang)) {
           try {
-            return Renderer.render_div(lang, "{{ dataobj['id']}}", str, "lazyrender")
+            return Renderer.render_div(lang, "TODO", str, "lazyrender") //TODO: use "{{ dataobj['id']}}" instead
+            // TODO: need to pass objid but it's not available on home and tags
           } catch (__) {}
         } else {
             return '<pre class="hljs"><code>' +
