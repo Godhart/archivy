@@ -113,6 +113,14 @@ def run():
     load_dotenv()
     environ["FLASK_RUN_FROM_CLI"] = "false"
     app_with_cli = create_click_web_app(click, cli, app)
+
+    import archivy.render.common as render_unit
+    render_unit.IMG_ROOT_PATH = str(Path(app_with_cli.config["USER_DIR"]) / "images")
+    render_unit.IMG_ROOT_PREFIX = "/images"
+    render_unit.DATA_ROOT_PATH = str(Path(app_with_cli.config["USER_DIR"]) / "data")
+    render_unit.DATA_ROOT_PREFIX = "/dataobjs"
+    render_unit.CACHE_ROOT_PATH = str(Path(app_with_cli.config["INTERNAL_DIR"]) / ".render_cache")
+
     app_with_cli.run(host=app.config["HOST"], port=app.config["PORT"])
 
 
