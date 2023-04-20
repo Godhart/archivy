@@ -417,6 +417,25 @@ def to_diagram(
     return result
 
 
+def _extract_ssr(content):
+    result = []
+    fenced = ""
+    kind = ""
+    for line in content.split("\n"):
+        if len(fenced) == 0:
+            if line[:3] not in ("~~~", "```"):
+                continue
+            m = re.match(r"^(~+|`+)(ssr)\s*?$", line)
+            if m is None:
+                continue
+            fenced = m.groups()[0]
+            kind = m.groups()[1]
+        else:
+            if line.strip() == fenced:
+                break
+            result.append(line)
+    return kind, "\n".join(result)
+
 def _read_content(kind, content_path, content, fallback=True):
     # strip frontmatter header
     # parse header into args
@@ -538,7 +557,12 @@ def _read_content(kind, content_path, content, fallback=True):
                 try:
                     with open(src_abs, "r", encoding='utf-8') as f:
                         sub_content = f.read()
-                    sub_errors, sub_args = _read_content("from_file", src_abs, sub_content, fallback=False)
+                    kind, sub_content = _extract_ssr(sub_content)
+                    if kind == "":
+                        sub_errors = [f"[ERROR]: Failed to find ssr section in source '{render_args['src']}', from '{content_path}'"]
+                        sub_args = None
+                    else:
+                        sub_errors, sub_args = _read_content("from_file", src_abs, sub_content, fallback=False)
                 except Exception as e:
                     errors += [f"[ERROR]: Failed to load source '{render_args['src']}', from '{content_path}' due to exception: {e}"]
                 errors += sub_errors
@@ -553,7 +577,8 @@ def _read_content(kind, content_path, content, fallback=True):
                         render_args["opts"][sk] = sv
                 # TODO: probably it would be better to update src, not set __start_path__
                 if "__start_path__" not in render_args["opts"]:
-                    render_args["opts"]["__start_path__"] = os.path.split(src_abs)[0]
+                    drp_norm = os.path.normpath(common.DATA_ROOT_PATH)
+                    render_args["opts"]["__start_path__"] = os.path.split(src_abs[len(drp_norm)+1:])[0]
     else:
         # Use data from content
         render_args['data'] = data
