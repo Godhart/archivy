@@ -7,7 +7,7 @@ from archivy import data, tags
 from archivy.search import search
 from archivy.models import DataObj, User
 from archivy.helpers import get_db
-from archivy.render import render as ssr
+from archivy.render.render import render as ssr
 
 
 api_bp = Blueprint("api", __name__)
@@ -265,7 +265,11 @@ def render():
             return Response("TODO", status=400)
     except FileExistsError:
         return Response("TODO", status=400)
-    result = ssr("TODO: get data from request")
+    try:
+        result = ssr(kind, objid, content)
+    except Exception as e:
+        return Response(f"{e}", status=422) # Unprocessable content
+
     response = Response(
         response=json.dumps({"data": result}),
         status=200,
