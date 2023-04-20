@@ -1,4 +1,5 @@
 import os
+import re
 import hashlib
 
 
@@ -41,3 +42,16 @@ def digest(data=None, file=None):
         with open(file, "rb") as f:
             data = f.read()
     return hashlib.md5(data).hexdigest()
+
+
+def to_abs_path(root_path, path):
+    path_abs = path
+    if path_abs [:1] == "/":
+        path_abs = re.sub("^/+", "", path_abs)
+        path_abs = os.path.normpath(os.path.join(root_path, path_abs))
+    else:
+        path_abs = os.path.normpath(os.path.join(root_path, path_abs))
+    drp_norm = os.path.normpath(root_path)
+    if path_abs[:len(drp_norm)+1] != drp_norm + PATH_SEP:
+        raise ValueError(f"Path {path} is outside root path!")
+    return path_abs
