@@ -428,7 +428,7 @@ def open_file(path):
 
 
 def valid_image_filename(filename):
-    ALLOWED_EXTENSIONS = ["jpg", "png", "gif", "jpeg"]
+    ALLOWED_EXTENSIONS = ["jpg", "png", "gif", "jpeg", "svg"]
     return "." in filename and filename.rsplit(".", 1)[1] in ALLOWED_EXTENSIONS
 
 
