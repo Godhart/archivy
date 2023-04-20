@@ -7,6 +7,7 @@ IMG_ROOT_PATH = None
 IMG_ROOT_PREFIX = None
 DATA_ROOT_PATH = None
 DATA_ROOT_PREFIX = None
+CACHE_ROOT_PATH = None
 PATH_SEP = os.path.join("a","b")[1]
 
 # TODO: data domains and paths to them
@@ -22,10 +23,12 @@ def get_param(opts, param, fallback):
 
 def get_cache(opts):
     cache = get_param(opts, "RENDER_CACHE", "true").lower() == "true"
-    cache_dir = get_param(opts, "RENDER_CACHE", ".render-cache")
+    cache_dir = get_param(opts, "RENDER_CACHE_PATH", ".render-cache")
     if cache and cache_dir == "":
-        raise ValueError("using cache without cache dir specified!")
-    cache_dir = os.path.join(DATA_ROOT_PATH, cache_dir)
+        raise ValueError("using cache without cache dir (RENDER_CACHE_PATH) specified!")
+    if CACHE_ROOT_PATH is None:
+        raise ValueError("using cache without CACHE_ROOT_PATH specified!")
+    cache_dir = os.path.join(CACHE_ROOT_PATH, cache_dir)
     return cache, cache_dir
 
 
