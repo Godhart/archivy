@@ -67,7 +67,7 @@ import yaml
 from copy import deepcopy
 
 import archivy.render.common as common
-from archivy.render.common import get_param
+from archivy.render.common import get_param, to_abs_path
 from archivy.render.kroki import render_kroki
 from archivy.render.splash import render_splash
 from archivy.render.office import render_office
@@ -298,12 +298,11 @@ def to_diagram(
 
     # Render diagram
     if True:
-        src_abs = src
+        src_abs = src.replace("\\", "/")
         if len(src_abs) > 0:
-            if src_abs [:1] == "/":
-                src_abs = os.path.join(common.DATA_ROOT_PATH, src_abs)
-            else:
-                src_abs = os.path.join(common.DATA_ROOT_PATH, opts["__start_path__"], src)
+            if src_abs[:1] != "/":
+                src_abs = os.path.join(opts["__start_path__"], src)
+            src_abs = to_abs_path(common.DATA_ROOT_PATH, src_abs)
         try:
             render_result, render_errors = service_render[service](
                 data,
@@ -527,20 +526,19 @@ def _read_content(kind, content_path, content, fallback=True):
     if render_args.get('src', "") != "":
         # Recurse if source is md
         if render_args['src'][-6:].lower() == "ssr.md":
-            src_path = render_args['src']
-            if src_path[:1] == "/":
-                src_path = os.path.join(common.DATA_ROOT_PATH, src_path)
-            else:
-                src_path = os.path.join(common.DATA_ROOT_PATH, os.path.split(content_path)[0], src_path)
-            if not os.path.exists(src_path):
+            src_abs = render_args['src'].replace("\\", "/")
+            if src_abs[:1] != "/":
+                src_abs = os.path.join(os.path.split(content_path)[0], src_abs)
+            src_abs = to_abs_path(common.DATA_ROOT_PATH, src_abs)
+            if not os.path.exists(src_abs):
                 errors.append(f"[ERROR]: Not found source '{render_args['src']}', referenced from '{content_path}'")
-            elif not os.path.isfile(src_path):
+            elif not os.path.isfile(src_abs):
                 errors.append(f"[ERROR]: Not a file at path '{render_args['src']}', referenced from '{content_path}'")
             else:
                 try:
-                    with open(src_path, "r", encoding='utf-8') as f:
+                    with open(src_abs, "r", encoding='utf-8') as f:
                         sub_content = f.read()
-                    sub_errors, sub_args = _read_content("from_file", src_path, sub_content, fallback=False)
+                    sub_errors, sub_args = _read_content("from_file", src_abs, sub_content, fallback=False)
                 except Exception as e:
                     errors += [f"[ERROR]: Failed to load source '{render_args['src']}', from '{content_path}' due to exception: {e}"]
                 errors += sub_errors
@@ -555,7 +553,7 @@ def _read_content(kind, content_path, content, fallback=True):
                         render_args["opts"][sk] = sv
                 # TODO: probably it would be better to update src, not set __start_path__
                 if "__start_path__" not in render_args["opts"]:
-                    render_args["opts"]["__start_path__"] = os.path.split(src_path)[0]
+                    render_args["opts"]["__start_path__"] = os.path.split(src_abs)[0]
     else:
         # Use data from content
         render_args['data'] = data
