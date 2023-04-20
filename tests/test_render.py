@@ -7,6 +7,7 @@ render_unit.DATA_ROOT_PATH = os.path.join(os.getcwd(), "tests", "render")
 render_unit.DATA_ROOT_PREFIX = "/dataobjs"
 render_unit.IMG_ROOT_PATH = os.path.join(os.getcwd(), "tests", "render", ".out")
 render_unit.IMG_ROOT_PREFIX = "/image"
+render_unit.CACHE_ROOT_PATH = os.path.join(os.getcwd(), "tests", "render", ".cache")
 render_unit.PARAMS = {
 
 }
