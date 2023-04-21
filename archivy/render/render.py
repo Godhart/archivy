@@ -44,7 +44,8 @@
 #                 from `src` path.
 #                 File extension would depend on `dformat` argument and on
 #                 `fig.ext` options for R chunk
-# service       - Rendering service ("kroki", "office", "splash", "yaml4schm")
+# service       - Rendering service ("kroki", "office", "splash", "yaml4schm",
+#                 "drawio")
 # serviceUrl    - Rendering service base url.
 #                 This is starting part of url for service access.
 #                 Default is path `http://kroki:8000` to local Kroki
@@ -71,7 +72,7 @@ from archivy.render.common import get_param, to_abs_path
 from archivy.render.kroki import render_kroki
 from archivy.render.splash import render_splash
 from archivy.render.office import render_office
-from archivy.render.local import render_local
+from archivy.render.drawio import render_drawio
 from archivy.render.svg_tools import resize as svg_resize
 from archivy.render.svg_tools import convert_to as svg_convert
 
@@ -81,19 +82,22 @@ service_alias = {
     "krk" : "kroki",
     "ofc" : "office",
     "y4s" : "yaml4schm",
-    "spl" : "splash"
+    "spl" : "splash",
+    "drw" : "drawio",
 }
 
 service_render = {
     "kroki"     : render_kroki,
     "splash"    : render_splash,
     "office"    : render_office,
+    "drawio"    : render_drawio,
     "yaml4schm" : None,             # NOTE: redirected to be rendered with splash
 }
 
 service_map = {
     ".vsd"      : ("office",    "draw"),
     ".odg"      : ("office",    "draw"),
+    ".drawio"   : ("drawio",    "draw"),
 }
 
 # TODO: supported formats map
@@ -120,9 +124,10 @@ def to_diagram(
 
     service_defaults = {
         "kroki"     : get_param(opts, "RENDER_SVC_KROKI",    "http://127.0.0.1:8081"),
-        "office"    : get_param(opts, "RENDER_SVC_OFFICE",   "local"),
+        "office"    : "local",
         "yaml4schm" : get_param(opts, "RENDER_SVC_Y4S",      "http://127.0.0.1:8088"),
         "splash"    : get_param(opts, "RENDER_SVC_SPLASH",   "http://127.0.0.1:8050"),
+        "drawio"    : "local",
     }
 
     def get_service_url(service):
@@ -147,7 +152,7 @@ def to_diagram(
 
     if serviceUrl is None:
         serviceUrl = get_service_url(service)
-    if service == "office":
+    if service_defaults[service] == "local":
         serviceUrl = "local"
 
     # File name for downloaded diagram
@@ -481,6 +486,9 @@ def _read_content(kind, content_path, content, fallback=True):
         "auto_fit_width"        : (None, str),
         "auto_fit_height"       : (None, str),
         "html_default_out_width": (None, str),
+        "splash_engine"         : (None, str),
+        "layers"                : (None, str),
+        "transparent"           : (None, str),
     }
 
     opts = (
@@ -491,13 +499,16 @@ def _read_content(kind, content_path, content, fallback=True):
         "auto_fit_width"        ,
         "auto_fit_height"       ,
         "html_default_out_width",
+        "splash_engine"         ,
+        "layers"                ,
+        "transparent"           ,
     )
 
     env_vars = (
         "RENDER_SVC_KROKI"      ,
-        "RENDER_SVC_OFFICE"     ,
         "RENDER_SVC_Y4S"        ,
         "RENDER_SVC_SPLASH"     ,
+        "RENDER_SPLASH_ENGINE"  ,
         "RENDER_DEBUG"          ,
         "RENDER_AUTO_FIT_WIDTH" ,
         "RENDER_AUTO_FIT_HEIGHT",
@@ -506,14 +517,7 @@ def _read_content(kind, content_path, content, fallback=True):
         "RENDER_CACHE"          ,
         "RENDER_CACHE_PATH"     ,
 
-        "RENDER_FORCE"          ,   # TODO: option, not env
-
-        # TODO: those are redundant
-        # "service_kroki"         : (None, str),
-        # "service_office"        : (None, str),
-        # "service_yaml4schm"     : (None, str),
-        # "service_splash"        : (None, str),
-        # "splash_engine"         : (None, str),
+        "RENDER_FORCE"          ,
     )
 
     render_args = {"opts": {}}
