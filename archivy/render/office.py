@@ -3,9 +3,7 @@ import os
 import re
 import shutil
 
-import archivy.render.common as common
 from archivy.render.common import digest, get_param, get_cache
-import archivy.render.render as render
 
 
 def render_office(
