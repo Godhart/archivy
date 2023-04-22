@@ -13,14 +13,19 @@ class Renderer {
         })
     }
 
-    static render_ssr(kind, objid, content) {
+    static render_ssr(kind, objid, content, datanode) {
         return new Promise((resolve, reject) => {
+            const dark = datanode.getAttribute("data-dark");
+            const options = {
+                "dark-theme": dark == "true"
+            }
             fetch(`/api/render`, {
                 "method": "POST",
                 "body": JSON.stringify({
                     "kind": kind,
                     "objid": objid,
                     "content": content,
+                    "options": options,
                 }),
                 "headers": {
                     "Accept": "application/json",
@@ -124,12 +129,12 @@ class Renderer {
 
     }
 
-    static render_div(kind, objid, content, clsid) {
+    static render_div(kind, objid, content, clsid, dark) {
         if (this.renders()[this.render_map(kind)].custom_div !== undefined) {
             return this.renders()[this.render_map(kind)].custom_div(kind, objid, content, clsid)
         } else {
             return `</code></pre>
-<div class="${clsid}" data-kind="${kind}" data-objid="${objid}" data-needs-update="true">
+<div class="${clsid}" data-kind="${kind}" data-objid="${objid}" data-dark="${dark}" data-needs-update="true">
 <pre style="display:none;"><code class="lazyrender-content">${content}</code></pre>
 <div class="lazyrender-result"></div>
 </div><pre><code>`

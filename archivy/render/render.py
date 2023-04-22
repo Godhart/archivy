@@ -250,7 +250,7 @@ def to_diagram(
             auto_fit_height = get_param(opts, "RENDER_AUTO_FIT_HEIGHT", "800px")
 
         inversion   = opts.get("inversion", "auto").lower()
-        dark_theme = opts.get("dark_theme", False)
+        dark_theme = opts.get("dark-theme", False)
         if inversion not in ("auto", "opposite", "yes", "true", "no", "false"):
             raise ValueError(f"'inversion' property should be on of ('auto', 'none', 'yes', 'true', 'no', 'false'), got '{inversion}'!")
         if inversion in ('yes', 'true'):
@@ -265,7 +265,7 @@ def to_diagram(
         if not inversion:
             inversion = ""
         else:
-            inversion = 'style="{filter: brightness(0.85) invert() hue_rotate(180deg);}"'
+            inversion = 'style="filter: brightness(0.85) invert() hue-rotate(180deg);"'
 
 
     # Determine download and target path
@@ -642,7 +642,7 @@ def _read_content(content_source, content_path, content, service=None, engine=No
     return [], render_args
 
 
-def render(kind, objid, content):
+def render(kind, objid, content, options):
     try:
         content_path = objid.replace("--", "/") + ".md"
         quick, service, engine = _get_service_engine(kind)
@@ -650,6 +650,9 @@ def render(kind, objid, content):
 
         if len(errors) > 0:
             return "\n".join(errors)    # TODO: HTML escaping
+        
+        for k, v in options.items():
+            render_args["opts"][k] = v
 
         if "RENDER_GENERATED_PATH" not in render_args["opts"]:
             render_args["opts"]["RENDER_GENERATED_PATH"] = content_path + "/generated"
