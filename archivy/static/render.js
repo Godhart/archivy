@@ -86,18 +86,28 @@ class Renderer {
         }
     }}
 
+    static render_map(value) {
+        if (value === "ssq") {
+            return "ssr"
+        }
+        if ((value.substring(0,4) === "ssr-") || (value.substring(0,4) === "ssq-")) {
+            return "ssr"
+        }
+        return value
+    }
+
     static supported (kind) {
         if (kind === "xxx") {
-            // NOTE: that one is for testing error handling only
+            // NOTE: that one is for testing errors handling only
             return true
         }
-        return this.renders()[kind] !== undefined
+        return this.renders()[this.render_map(kind)] !== undefined
     }
 
     static render (kind, objid, content, target, datanode) {
         console.log(`render(${kind}, ${objid}, ${content}, ${target})`)
-        if (this.renders()[kind] !== undefined) {
-            this.renders()[kind].function(kind, objid, content, datanode)
+        if (this.renders()[this.render_map(kind)] !== undefined) {
+            this.renders()[this.render_map(kind)].function(kind, objid, content, datanode)
             .then((response) => {
                     if (response.data != null) {
                         target.innerHTML = response.data
@@ -115,8 +125,8 @@ class Renderer {
     }
 
     static render_div(kind, objid, content, clsid) {
-        if (this.renders()[kind].custom_div !== undefined) {
-            return this.renders()[kind].custom_div(kind, objid, content, clsid)
+        if (this.renders()[this.render_map(kind)].custom_div !== undefined) {
+            return this.renders()[this.render_map(kind)].custom_div(kind, objid, content, clsid)
         } else {
             return `</code></pre>
 <div class="${clsid}" data-kind="${kind}" data-objid="${objid}" data-needs-update="true">
