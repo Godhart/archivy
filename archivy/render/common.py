@@ -80,7 +80,7 @@ class handler_info(object):
             env:dict,
             engines:dict,
             serviceUrl:str,
-            fun:function,
+            fun,
             ):
         self.service = service
         self.alias = alias
@@ -181,7 +181,7 @@ class ssr_handlers(object):
             raise ValueError(f"No service is registered with name '{service}'")
         return self._handlers[service].serviceUrl
     
-    def mandatory_fields(self):
+    def general_fields(self):
         return [k for k in self._supported_fields.keys() if k not in self._opts]
 
     def supported_field(self, service, field, value):
@@ -248,6 +248,7 @@ class ssr_handlers(object):
     def formats(self, service, engine):
         if engine not in self.engines(service):
             raise ValueError(f"No engine '{engine}' for service '{service}' is found!")
-        return [*self.engines(service).formats]
+        eng_data = self._handlers[service].engines[engine]
+        return [*eng_data.formats]
 
 default_handlers = ssr_handlers()

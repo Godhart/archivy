@@ -39,7 +39,7 @@ def render_drawio(
         drawio_opts += ["--embed-svg-images"]
 
     transp = opts.get("transparent", None)
-    if transp.lower() in ("yes", "true"):
+    if transp is not None and transp.lower() in ("yes", "true"):
         drawio_opts += ["-t"]
 
     layers = opts.get("layers", None)

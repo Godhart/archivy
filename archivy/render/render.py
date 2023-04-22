@@ -72,6 +72,8 @@ from archivy.render.common import get_param, to_abs_path, default_handlers
 from archivy.render.svg_tools import resize as svg_resize
 from archivy.render.svg_tools import convert_to as svg_convert
 
+import archivy.render.office
+import archivy.render.drawio
 # TODO: everything that is printed into HTML should be made safe
 
 
@@ -248,7 +250,7 @@ def to_diagram(
             auto_fit_height = get_param(opts, "RENDER_AUTO_FIT_HEIGHT", "800px")
 
         inversion   = opts.get("inversion", "auto").lower()
-        dark_theme = opts.get("inversion", False)
+        dark_theme = opts.get("dark_theme", False)
         if inversion not in ("auto", "opposite", "yes", "true", "no", "false"):
             raise ValueError(f"'inversion' property should be on of ('auto', 'none', 'yes', 'true', 'no', 'false'), got '{inversion}'!")
         if inversion in ('yes', 'true'):
@@ -263,7 +265,7 @@ def to_diagram(
         if not inversion:
             inversion = ""
         else:
-            inversion = 'style="filter: brightness(0.85) invert() hue_rotate(180deg);"'
+            inversion = 'style="{filter: brightness(0.85) invert() hue_rotate(180deg);}"'
 
 
     # Determine download and target path
@@ -389,7 +391,7 @@ def to_diagram(
                     result.append(img_tag)
             else:
                 for err in errors:
-                    result.append(f"<p>{err}</p>")
+                    result.append(f"<code>{err}</code>")
         else:
             errors.append("Non images formats are not supported yet!")
             if len(errors) == 0:
@@ -435,7 +437,7 @@ def _extract_ssr(content):
     return kind, "\n".join(result)
 
 def _get_service_engine(kind):
-    m = re.match(r"^"+common.SSR_RE+r"$")
+    m = re.match(r"^"+common.SSR_RE+r"$", kind)
     if m is None:
         raise ValueError(f"Unexpected kind: {kind}")
     quick = kind[2] == "q"
@@ -588,7 +590,7 @@ def _read_content(content_source, content_path, content, service=None, engine=No
         render_args["engine"] = engine
 
     # Get other options
-    mandatory_fields = common.default_handlers.mandatory_fields()
+    general_fields = common.default_handlers.general_fields()
     env_vars = common.default_handlers.env_vars(service)
     for k, v in fm.items():
         if k != "env":
@@ -600,7 +602,7 @@ def _read_content(content_source, content_path, content, service=None, engine=No
             elif required_type is not True:
                 errors.append(f"[ERROR]: Option '{k}' should be one of following types [{', '.join([str(rt)] for rt in required_type)}]!")
             else:
-                if k not in mandatory_fields:
+                if k not in general_fields:
                     render_args["opts"][k] = v
                 else:
                     render_args[k] = v
@@ -626,26 +628,35 @@ def _read_content(content_source, content_path, content, service=None, engine=No
 
     # Fallback non initialized values to defaults
     if fallback:
-        defaults = common.default_handlers.service_defaults(service)
-        for k, v in defaults.items():
-            if k not in render_args:
-                render_args[k] = defaults
+        service_defaults = common.default_handlers.service_defaults(service)
+        for k, v in service_defaults.items():
+            if k == "env":
+                continue
+            if k in general_fields:
+                if k not in render_args:
+                    render_args[k] = v
+            else:
+                if k not in render_args["opts"]:
+                    render_args["opts"][k] = v
 
     return [], render_args
 
 
 def render(kind, objid, content):
-    content_path = objid.replace("--", "/") + ".md"
-    quick, service, engine = _get_service_engine(kind)
-    errors, render_args = _read_content("request", content_path, content, service, engine, quick)
+    try:
+        content_path = objid.replace("--", "/") + ".md"
+        quick, service, engine = _get_service_engine(kind)
+        errors, render_args = _read_content("request", content_path, content, service, engine, quick)
 
-    if len(errors) > 0:
-        return "\n".join(errors)    # TODO: HTML escaping
+        if len(errors) > 0:
+            return "\n".join(errors)    # TODO: HTML escaping
 
-    if "RENDER_GENERATED_PATH" not in render_args["opts"]:
-        render_args["opts"]["RENDER_GENERATED_PATH"] = content_path + "/generated"
+        if "RENDER_GENERATED_PATH" not in render_args["opts"]:
+            render_args["opts"]["RENDER_GENERATED_PATH"] = content_path + "/generated"
 
-    if "__start_path__" not in render_args["opts"]:
-        render_args["opts"]["__start_path__"] = os.path.split(content_path)[0]
+        if "__start_path__" not in render_args["opts"]:
+            render_args["opts"]["__start_path__"] = os.path.split(content_path)[0]
 
-    return to_diagram(**render_args)
+        return to_diagram(**render_args)
+    except Exception as e:
+        return f"<code>Failed due to exception: {e}</code>"
