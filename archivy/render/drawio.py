@@ -1,4 +1,5 @@
 from archivy.render.local import render_local
+from archivy.render.common import default_handlers, handler_info, handler_engine
 
 def render_drawio(
     data,           # NOTE: data is not used by render_drawio
@@ -48,3 +49,24 @@ def render_drawio(
     serviceUrl = ["draw.io", *drawio_opts, src]
 
     return render_local(data, src, dformat, d_path, serviceUrl, engine, page, force, opts)
+
+
+default_handlers.register_handler(
+    handler_info(
+        service     = "drawio",
+        alias       = "drw",
+        opts        = {
+            "layers"        : (None, str),
+            "transparent"   : (None, str),
+        },
+        env         = {},
+        engines     = {
+            "draw": handler_engine(
+                exts =      [".drawio"],
+                formats =   ["svg", "png", "pdf"]
+            ),
+        },
+        serviceUrl  = "local",
+        fun         = render_drawio
+    )
+)

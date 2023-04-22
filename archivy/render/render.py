@@ -68,39 +68,12 @@ import yaml
 from copy import deepcopy
 
 import archivy.render.common as common
-from archivy.render.common import get_param, to_abs_path
-from archivy.render.kroki import render_kroki
-from archivy.render.splash import render_splash
-from archivy.render.office import render_office
-from archivy.render.drawio import render_drawio
+from archivy.render.common import get_param, to_abs_path, default_handlers
 from archivy.render.svg_tools import resize as svg_resize
 from archivy.render.svg_tools import convert_to as svg_convert
 
-# TODO: everything that is printed into HTML should be made safe 
+# TODO: everything that is printed into HTML should be made safe
 
-service_alias = {
-    "krk" : "kroki",
-    "ofc" : "office",
-    "y4s" : "yaml4schm",
-    "spl" : "splash",
-    "drw" : "drawio",
-}
-
-service_render = {
-    "kroki"     : render_kroki,
-    "splash"    : render_splash,
-    "office"    : render_office,
-    "drawio"    : render_drawio,
-    "yaml4schm" : None,             # NOTE: redirected to be rendered with splash
-}
-
-service_map = {
-    ".vsd"      : ("office",    "draw"),
-    ".odg"      : ("office",    "draw"),
-    ".drawio"   : ("drawio",    "draw"),
-}
-
-# TODO: supported formats map
 
 html_default_out_width_fallback = 672
 
@@ -120,40 +93,26 @@ def to_diagram(
       page = None,
       force = False,
       opts = {},
+      handlers = default_handlers
     ):
-
-    service_defaults = {
-        "kroki"     : get_param(opts, "RENDER_SVC_KROKI",    "http://127.0.0.1:8081"),
-        "office"    : "local",
-        "yaml4schm" : get_param(opts, "RENDER_SVC_Y4S",      "http://127.0.0.1:8088"),
-        "splash"    : get_param(opts, "RENDER_SVC_SPLASH",   "http://127.0.0.1:8050"),
-        "drawio"    : "local",
-    }
-
-    def get_service_url(service):
-        # TODO: this seems to be redundant
-        return get_param(opts, f"service_{service.lower()}", service_defaults[service])
 
     DEBUG = get_param(opts, "RENDER_DEBUG", False)
     is_html_output = True   # NOTE: option form R version of script. In this case - always True
     is_latex_output = False # NOTE: same case as above, but this time value is always False
-    splash_engine = None
     auto_fit_width = None
     auto_fit_height = None
 
     errors = []
 
-    if service in service_alias:
-        service = service_alias[service]
-
-    if service not in service_defaults:
-        raise ValueError(
-            f"service should be one of {', '.join(list(service_defaults.keys()) + list(service_alias.keys()))} but got '{service}'")
+    if service in handlers.aliases():
+        service = handlers.service_dealias(service)
+    else:
+        if service not in handlers.services():
+            raise ValueError(
+                f"service should be one of {', '.join(list(handlers.services()) + list(handlers.aliases()))} but got '{service}'")
 
     if serviceUrl is None:
-        serviceUrl = get_service_url(service)
-    if service_defaults[service] == "local":
-        serviceUrl = "local"
+        serviceUrl = handlers.service_defaultUrl(service)
 
     # File name for downloaded diagram
     if downloadName != "":
@@ -175,70 +134,66 @@ def to_diagram(
         fname += "-"+page
 
     # Select download and output formats
-    if dformat == "":
-        dformat = "svg" # If format is not specified - svg would be used
+    formats = handlers.formats(service, engine)
 
-    # Yaml4Schm is rendered with Splash
-    # (due to the fact that schematic is rendered live and it takes some time)
-    if service == "yaml4schm":
-        is_y4s = True
-        y4s_src = src
-        draw_method = "draw"
-        if engine == "d3hw" and (not is_html_output or dformat != "svg"):
-            # NOTE: for d3hw engine with non-HTML output and non-SVG data
-            # 'show' should be used instead of 'draw' (due to styles)
-            draw_method = "show"
-            if dformat == "svg":
-               # SVG dformat should be used in this case for same reasons
-               dformat = "png"
-               format = "png"
-
-        src = "/".join(serviceUrl, engine, draw_method, src)
-        if engine == "d3hw":
-            splash_engine = "chromium"
-            auto_fit_width = ""
-            auto_fit_height = ""
-
-        fname += f"-{engine}"
-
-        service = "splash"
-        serviceUrl = get_service_url(service)
-        engine = dformat
-    else:
-        is_y4s = False
-        y4s_src = None
-
-    # for Splash SVGs are grabbed out of HTML
-    if service == "splash":
-        fname += f"-{engine}"
-        if engine == "svg":
-            # For Splash and SVG output data should be obtained as HTML
-            engine = "html"
-            dformat = "svg"
+    # If output format is not specified - use defaults
+    if format is None:
+        if is_latex_output:
+            format = "pdf"      # PDF for PDF
+        elif is_html_output:
+            format = "svg"      # SVG for HTML
         else:
-            dformat = engine
-            format = dformat
-        if splash_engine is None:
-            splash_engine = get_param(opts, "splash_engine", "chromium")
-        fname += f"-{splash_engine}"
+            format = "png"      # PNG for anything else
 
-    # If download format is SVG then conversion for output format may be required
-    if dformat == "svg":
-        # If output format is not specified - use defaults
-        if format is None:
-            if is_latex_output:
-                format = "pdf"      # PDF for PDF
-            elif is_html_output:
-                format = "svg"      # SVG for HTML
-            else:
-                format = "png"      # PNG for anything else
-        # If it's office then dformat should be same as format
-        if service == "office":
+    if format in formats:
+        # If format is supported by service
+        if dformat == "":
+            # if not specified explicitly then download format should be the same
             dformat = format
+        elif dformat == "svg":
+            # if dformat is specified explicitly then make sure it's compatible
+            if dformat not in formats:
+                raise ValueError(f"dformat '{dformat}' is not supported by service '{service}'!")
+            # Conversion is supported only for pdf and png
+            if format not in ("pdf", "svg"):
+                raise ValueError(f"Conversion from '{dformat}' to '{format}' is not supported!")
+        else:
+            raise ValueError("Only conversion 'svg' to 'pdf' or 'png' is supported")
     else:
-        # If download format is other than SVG
-        # then output format should be same as download format
-        format = dformat
+        # If service not supports this format then try to get svg then convert
+        if dformat == "":
+            # Automatically pick download format
+            if format in ("pdf", "png"):
+                if "svg" not in formats:
+                    raise ValueError(
+                        f"Format '{format}' is not supported by '{service}'"
+                        f" and also there is no supported format ('svg') to convert from!"
+                        f" Chose format one of ({', '.join(formats)})")
+                else:
+                    dformat = "svg"
+            else:
+                raise ValueError(
+                    f"Format '{format}' is not supported by '{service}'"
+                    f" and conversion from other formats also is not supported!"
+                    f" Chose format one of ({', '.join(formats)})")
+        else:
+            # If download format is specified explicitly
+            # (everything is defined, only do checks)
+            if format in ("pdf", "png"):
+                if dformat != "svg":
+                    raise ValueError("Only conversion 'svg' to 'pdf' or 'png' is supported")
+                if dformat not in formats:
+                    raise ValueError(
+                        f"Format '{format}' is not supported by '{service}'"
+                        f" and also there is no supported format ('svg') to convert from!"
+                        f" Chose format one of ({', '.join(formats)})")
+            else:
+                raise ValueError(
+                    "Only conversion 'svg' to 'pdf' or 'png' is supported!"
+                    f" Chose format one of ({', '.join(formats)})"
+                )
+                if dformat not in formats:
+                    raise ValueError(f"dformat '{dformat}' is not supported by service '{service}'!")
 
     # If output format is not svg then rawsvg is impossible
     if format != "svg":
@@ -248,9 +203,21 @@ def to_diagram(
     if not is_html_output:
         rawsvg = False
 
-    # Placement options (NOTE: in original script this is for Raw SVG only)
-    if True or rawsvg:
-        caption = opts.get("caption", None)
+    # Get misc options
+    caption = opts.get("caption", None)
+    if caption is None:
+        caption = ""
+
+    # Placement options
+    if format not in common.IMAGE_FORMATS:
+        # Fallback for non-image format
+        width   = ""
+        height  = ""
+        align   = "center"
+        auto_fit_width = "84%"
+        auto_fit_height = "800px"
+        inversion = ""
+    else:
         width   = opts.get("width", None)
         height  = opts.get("height", None)
         align   = opts.get("align", None)
@@ -264,9 +231,6 @@ def to_diagram(
 
         if is_html_output and str(width) == str(html_default_out_width):
             width = None
-
-        if caption is None:
-            caption = ""
 
         if width is None:
             width = ""
@@ -282,6 +246,25 @@ def to_diagram(
 
         if auto_fit_height is None:
             auto_fit_height = get_param(opts, "RENDER_AUTO_FIT_HEIGHT", "800px")
+
+        inversion   = opts.get("inversion", "auto").lower()
+        dark_theme = opts.get("inversion", False)
+        if inversion not in ("auto", "opposite", "yes", "true", "no", "false"):
+            raise ValueError(f"'inversion' property should be on of ('auto', 'none', 'yes', 'true', 'no', 'false'), got '{inversion}'!")
+        if inversion in ('yes', 'true'):
+            inversion = True
+        elif inversion in ('no', 'false'):
+            inversion = False
+        elif inversion == "auto":
+            inversion = dark_theme
+        else:
+            inversion = not dark_theme
+
+        if not inversion:
+            inversion = ""
+        else:
+            inversion = 'style="filter: brightness(0.85) invert() hue_rotate(180deg);"'
+
 
     # Determine download and target path
     g_path = get_param(opts, "RENDER_GENERATED_PATH", ".dia-generated").replace(".", "_")
@@ -309,7 +292,7 @@ def to_diagram(
                 src_abs = os.path.join(opts["__start_path__"], src)
             src_abs = to_abs_path(common.DATA_ROOT_PATH, src_abs)
         try:
-            render_result, render_errors = service_render[service](
+            render_result, render_errors = handlers.service_render(service)(
                 data,
                 src_abs,
                 dformat,
@@ -376,43 +359,53 @@ def to_diagram(
         div_ref = ""
         if rawsvg and ref != "":
             div_ref = f'id="{ref}"'
-        result.append(f'<div align="{align}" {div_ref}>')
-        if len(errors) == 0:
-            if rawsvg:
-                try:
-                    # TODO: add color rotate to svg if necessary
-                    inline_svg = svg_resize(t_path, None, width, height, auto_fit_width, auto_fit_height)
-                except Exception as e:
-                    errors.append(f"Placing SVG inline failed due to exception: {e}")
 
-        if len(errors) == 0:
-            if rawsvg:
-                if get_param(opts, "RENDER_BREAK_ON_ERR", "false").lower()=="true" \
-                and os.path.exists(t_path+".err"):
-                    return f"There were errors while generating '{t_path}'!"
-                result.append(inline_svg)
+        result.append(f'<div align="{align}" {div_ref} {inversion}>')
+        if format in common.IMAGE_FORMATS:
+            if len(errors) == 0:
+                if rawsvg:
+                    try:
+                        inline_svg = svg_resize(t_path, None, width, height, auto_fit_width, auto_fit_height)
+                    except Exception as e:
+                        errors.append(f"Placing SVG inline failed due to exception: {e}")
+
+            if len(errors) == 0:
+                if rawsvg:
+                    if get_param(opts, "RENDER_BREAK_ON_ERR", "false").lower()=="true" \
+                    and os.path.exists(t_path+".err"):
+                        return f"There were errors while generating '{t_path}'!"
+                    result.append(inline_svg)
+                else:
+                    img_tag = f'src="{img_path}"'
+                    if ref != "":
+                        img_tag += f' id="{ref}"'
+                    if caption != "":
+                        img_tag += f' alt="{caption}"'
+                    if re.match(width, "^\d+[%]?$"):
+                        img_tag += f' width="{width}"'
+                    if re.match(height, "^\d+[%]?$"):
+                        img_tag += f' height="{height}"'
+                    img_tag = f'<img {img_tag}>'
+                    result.append(img_tag)
             else:
-                # TODO: add color rotate to div if necessary and it's not rawsvg
-                img_tag = f'src="{img_path}"'
-                if ref != "":
-                    img_tag += f' id="{ref}"'
-                if caption != "":
-                    img_tag += f' alt="{caption}"'
-                if re.match(width, "^\d+[%]?$"):
-                    img_tag += f' width="{width}"'
-                if re.match(height, "^\d+[%]?$"):
-                    img_tag += f' height="{height}"'
-                img_tag = f'<img {img_tag}>'
-                result.append(img_tag)
+                for err in errors:
+                    result.append(f"<p>{err}</p>")
         else:
-            for err in errors:
-                result.append(f"<p>{err}</p>")
+            errors.append("Non images formats are not supported yet!")
+            if len(errors) == 0:
+                pass    # TODO: support for non images formats
+            else:
+                for err in errors:
+                    result.append(f"<p>{err}</p>")
         result.append("</div>")
 
-        # Add caption and reference
+        # Add caption
         if caption != "":
             result.append(f'<div align="{align}">')
-            result.append(f'<a href="{img_path}">{caption}</a>')
+            if format in common.IMAGE_FORMATS:
+                result.append(f'<a href="{img_path}">{caption}</a>')
+            else:
+                result.append(f'{caption}')
             result.append(f'</div>')
 
         result.append("\n")
@@ -430,7 +423,7 @@ def _extract_ssr(content):
         if len(fenced) == 0:
             if line[:3] not in ("~~~", "```"):
                 continue
-            m = re.match(r"^(~+|`+)(ssr)\s*?$", line)
+            m = re.match(r"^(~{3,}|`{3,})"+common.SSR_RE+"\s*?$", line)
             if m is None:
                 continue
             fenced = m.groups()[0]
@@ -441,174 +434,210 @@ def _extract_ssr(content):
             result.append(line)
     return kind, "\n".join(result)
 
-def _read_content(kind, content_path, content, fallback=True):
+def _get_service_engine(kind):
+    m = re.match(r"^"+common.SSR_RE+r"$")
+    if m is None:
+        raise ValueError(f"Unexpected kind: {kind}")
+    quick = kind[2] == "q"
+    if len(kind) == 3:
+        return quick, None, None
+    if "--" in kind[4:]:
+        return quick, kind[4:].split("--", 1)
+    else:
+        return quick, kind[4:], None
+
+def _read_content(content_source, content_path, content, service=None, engine=None, quick=False, fallback=True):
     # strip frontmatter header
     # parse header into args
     # set rest part as data
     # render at last
-    lines = content.split('\n')
-    if len(lines) < 3:
-        return ["[ERROR]: Front matter header expected!"], None
-    fm_raw = []
-    if lines[0].strip() == "---":
-        i = 1
-        while i < len(lines):
-            if lines[i] == "---":
-                break
-            fm_raw.append(lines[i].replace("\t", "    "))
-            i += 1
-        data = lines[i+1:]
-    fm_raw = "\n".join(fm_raw)
+    if not quick:
+        lines = content.split('\n')
+        if service is None:
+            if len(lines) < 3:
+                return ["[ERROR]: Front matter header expected!"], None
+        fm_raw = []
+        if lines[0].strip() == "---":
+            i = 1
+            while i < len(lines):
+                if lines[i] == "---":
+                    break
+                fm_raw.append(lines[i].replace("\t", "    "))
+                i += 1
+            data = lines[i+1:]
+        fm_raw = "\n".join(fm_raw)
+        data = "\n".join(lines)
+    else:
+        fm_raw = content
+        data = ""
     try:
         fm = yaml.safe_load(fm_raw)
     except Exception as e:
         return [f"[ERROR]:  Failed to parse header due to exception: {e}"], None
 
-    supported_fields = {
-        "ref"         : ("",      str),
-        "format"      : ("svg",   str),
-        "src"         : ("",      str),
-        "dformat"     : ("",      str),
-        "rawsvg"      : (True,    bool),
-        "downloadOnly": (False,   bool),
-        "downloadName": ("",      str),
-        "service"     : ("kroki", str),
-        "serviceUrl"  : (None,    str),
-        "engine"      : (None,    str),
-        "page"        : (None,    (int, str)),
-        "force"       : (False,   bool),
-        "env"         : (None,    dict),
-
-        "caption"               : (None, str),
-        "width"                 : (None, str),
-        "height"                : (None, str),
-        "align"                 : (None, str),
-        "auto_fit_width"        : (None, str),
-        "auto_fit_height"       : (None, str),
-        "html_default_out_width": (None, str),
-        "splash_engine"         : (None, str),
-        "layers"                : (None, str),
-        "transparent"           : (None, str),
-    }
-
-    opts = (
-        "caption"               ,
-        "width"                 ,
-        "height"                ,
-        "align"                 ,
-        "auto_fit_width"        ,
-        "auto_fit_height"       ,
-        "html_default_out_width",
-        "splash_engine"         ,
-        "layers"                ,
-        "transparent"           ,
-    )
-
-    env_vars = (
-        "RENDER_SVC_KROKI"      ,
-        "RENDER_SVC_Y4S"        ,
-        "RENDER_SVC_SPLASH"     ,
-        "RENDER_SPLASH_ENGINE"  ,
-        "RENDER_DEBUG"          ,
-        "RENDER_AUTO_FIT_WIDTH" ,
-        "RENDER_AUTO_FIT_HEIGHT",
-        "RENDER_GENERATED_PATH" ,
-        "RENDER_BREAK_ON_ERR"   ,
-        "RENDER_CACHE"          ,
-        "RENDER_CACHE_PATH"     ,
-
-        "RENDER_FORCE"          ,
-    )
-
     render_args = {"opts": {}}
     errors = []
-    for k, v in fm.items():
-        if k not in supported_fields:
-            errors.append(f"[ERROR]: Unsupported argument '{k}'!")
+
+    # Load nested first:
+    if fm.get("src", "")[-6:].lower() == "ssr.md":
+        src_abs = fm['src'].replace("\\", "/")
+        if src_abs[:1] != "/":
+            src_abs = os.path.join(os.path.split(content_path)[0], src_abs)
+        src_abs = to_abs_path(common.DATA_ROOT_PATH, src_abs)
+        if not os.path.exists(src_abs):
+            errors.append(f"[ERROR]: Not found source '{fm['src']}', referenced from '{content_path}'")
+        elif not os.path.isfile(src_abs):
+            errors.append(f"[ERROR]: Not a file at path '{fm['src']}', referenced from '{content_path}'")
         else:
-            if not isinstance(v, supported_fields[k][1]):
-                errors.append(f"[ERROR]: Field '{k}' should be of type '{supported_fields[1]}'!")
-            else:
-                if k in opts:
-                    render_args["opts"][k] = v
+            try:
+                with open(src_abs, "r", encoding='utf-8') as f:
+                    sub_content = f.read()
+                kind, sub_content = _extract_ssr(sub_content)
+                if kind == "":
+                    sub_errors = [f"[ERROR]: Failed to find ssr section in source '{fm['src']}', from '{content_path}'"]
+                    sub_args = None
                 else:
-                    if k != "env":
-                        render_args[k] = v
-                    else:
-                        for ek, ev in v:
-                            if ek not in env_vars:
-                                errors.append(f"[ERROR]: Unsupported env var '{ek}'!")
-                            else:
-                                if not isinstance(ev, str):
-                                    errors.append(f"[ERROR]: Env var '{ek}' should be of type 'str'!")
-                                else:
-                                    render_args["opts"][ek] = ev
+                    sub_quick, sub_service, sub_engine = _get_service_engine(kind)
+                    sub_errors, sub_args = _read_content(
+                        f"{content_source}:{fm['src']}", src_abs, sub_content, sub_service, sub_engine, sub_quick, fallback=False)
+            except Exception as e:
+                errors += [f"[ERROR]: Failed to load source '{fm['src']}', from '{content_path}' due to exception: {e}"]
+            errors += sub_errors
+            if len(errors) > 0:
+                return errors, None
+
+            del fm["src"]
+
+            for sk, sv in sub_args.items():
+                if sk not in ("opts"):
+                    render_args[sk] = sv
+            for sk, sv in sub_args["opts"].items():
+                render_args["opts"][sk] = sv
+            # Store path for referencing
+            drp_norm = os.path.normpath(common.DATA_ROOT_PATH)
+            render_args["opts"]["__start_path__"] = os.path.split(src_abs[len(drp_norm)+1:])[0]
+
     if len(errors) > 0:
         return errors, None
 
-    if render_args.get('src', "") != "":
-        # Recurse if source is md
-        if render_args['src'][-6:].lower() == "ssr.md":
-            src_abs = render_args['src'].replace("\\", "/")
-            if src_abs[:1] != "/":
-                src_abs = os.path.join(os.path.split(content_path)[0], src_abs)
-            src_abs = to_abs_path(common.DATA_ROOT_PATH, src_abs)
-            if not os.path.exists(src_abs):
-                errors.append(f"[ERROR]: Not found source '{render_args['src']}', referenced from '{content_path}'")
-            elif not os.path.isfile(src_abs):
-                errors.append(f"[ERROR]: Not a file at path '{render_args['src']}', referenced from '{content_path}'")
-            else:
-                try:
-                    with open(src_abs, "r", encoding='utf-8') as f:
-                        sub_content = f.read()
-                    kind, sub_content = _extract_ssr(sub_content)
-                    if kind == "":
-                        sub_errors = [f"[ERROR]: Failed to find ssr section in source '{render_args['src']}', from '{content_path}'"]
-                        sub_args = None
-                    else:
-                        sub_errors, sub_args = _read_content("from_file", src_abs, sub_content, fallback=False)
-                except Exception as e:
-                    errors += [f"[ERROR]: Failed to load source '{render_args['src']}', from '{content_path}' due to exception: {e}"]
-                errors += sub_errors
-                if len(errors) > 0:
-                    return errors, None
-                del render_args["src"]
-                for sk, sv in sub_args.items():
-                    if sk not in ("opts") and sk not in render_args:
-                        render_args[sk] = sv
-                for sk, sv in sub_args["opts"].items():
-                    if sk not in render_args["opts"]:
-                        render_args["opts"][sk] = sv
-                # TODO: probably it would be better to update src, not set __start_path__
-                if "__start_path__" not in render_args["opts"]:
-                    drp_norm = os.path.normpath(common.DATA_ROOT_PATH)
-                    render_args["opts"]["__start_path__"] = os.path.split(src_abs[len(drp_norm)+1:])[0]
-    else:
-        # Use data from content
-        render_args['data'] = data
+    # Prohibit service and engine opts if they are specified via args
+    if service is not None:
+        if "service" in fm:
+            errors += [f"[ERROR]: 'service' option is not allowed if service is determined by fenced chunk name!"]
 
-    # Map params by extension:
-    if "src" in render_args:
-        if "service" not in render_args:
-            for k, v in service_map.items():
-                if render_args["src"][-len(k):].lower() == k:
-                    render_args["service"] = v[0]
-                    render_args["engine"] = v[1]
-                    break
+    if engine is not None:
+        if "engine" in fm:
+            errors += [f"[ERROR]: 'engine' option is not allowed if service is determined by fenced chunk name!"]
+
+    if len(errors) > 0:
+        return errors, None
+
+    # Determine service and engine from options if not specified yet
+    if service is None:
+        if "service" in fm:
+            k, v = "service", fm["service"]
+            supported, required_type = common.default_handlers.supported_field(service, k, v)
+            if required_type is not True:
+                errors.append(f"[ERROR]: Option '{k}' should be one of following types [{', '.join([str(rt)] for rt in required_type)}]!")
+            service = v
+
+    if engine is None:
+        if "engine" in fm:
+            k, v = "service", fm["service"]
+            supported, required_type = common.default_handlers.supported_field(service, k, v)
+            if required_type is not True:
+                errors.append(f"[ERROR]: Option '{k}' should be one of following types [{', '.join([str(rt)] for rt in required_type)}]!")
+            engine = v
+
+    # Determine service and engine from source
+    if service is None or engine is None:
+        if "src" in fm:
+            predict_service, predict_engine = common.default_handlers.service_map(fm["src"])
+            if service is None:
+                service = predict_service
+            if engine is None:
+                engine = predict_engine
+
+    # Fallback to values from nested source
+    if service is None:
+        service = render_args.get("service", None)
+    if engine is None:
+        engine = render_args.get("engine", None)
+
+    # Service should be known at this moment
+    if service is None:
+        errors.append(f"[ERROR]: Can't determine required ssr service!")
+
+    if len(errors) > 0:
+        return errors, None
+
+    # Sanity checks for service and engine
+    if service not in common.default_handlers.services():
+        errors.append(f"[ERROR]: Service {service} is not supported!")
+    else:
+        if engine is not None:
+            if engine not in common.default_handlers.engines(service):
+                errors.append(f"[ERROR]: Engine {engine} is not supported by service '{service}'!")
+
+    if len(errors) > 0:
+        return errors, None
+
+    render_args["service"] = service
+
+    if engine is not None:
+        render_args["engine"] = engine
+
+    # Get other options
+    mandatory_fields = common.default_handlers.mandatory_fields()
+    env_vars = common.default_handlers.env_vars(service)
+    for k, v in fm.items():
+        if k != "env":
+            if k in ("service", "engine"):
+                continue
+            supported, required_type = common.default_handlers.supported_field(service, k, v)
+            if not supported:
+                errors.append(f"[ERROR]: Unsupported option '{k}'!")
+            elif required_type is not True:
+                errors.append(f"[ERROR]: Option '{k}' should be one of following types [{', '.join([str(rt)] for rt in required_type)}]!")
+            else:
+                if k not in mandatory_fields:
+                    render_args["opts"][k] = v
+                else:
+                    render_args[k] = v
+        else:
+            for ek, ev in v:
+                if ek not in env_vars:
+                    errors.append(f"[ERROR]: Unsupported env var '{ek}'!")
+                else:
+                    if not isinstance(ev, str):
+                        errors.append(f"[ERROR]: Env var '{ek}' should be of type 'str'!")
+                    else:
+                        supported, _ = common.default_handlers.supported_field(service, k, v)
+                        if supported:
+                            errors.append(f"[ERROR]: Environment variable name '{ek}' has been crossed with option name!")
+                        else:
+                            render_args["opts"][ek] = ev
+    if len(errors) > 0:
+        return errors, None
+
+    # Use data from content if source is not given
+    if render_args.get('src', "") == "":
+        render_args['data'] = data
 
     # Fallback non initialized values to defaults
     if fallback:
-        for k, v in supported_fields.items():
-            if k not in opts and k != "env":
-                if k not in render_args:
-                    render_args[k] = supported_fields[k][0]
+        defaults = common.default_handlers.service_defaults(service)
+        for k, v in defaults.items():
+            if k not in render_args:
+                render_args[k] = defaults
 
     return [], render_args
 
 
 def render(kind, objid, content):
     content_path = objid.replace("--", "/") + ".md"
-    errors, render_args = _read_content(kind, content_path, content)
+    quick, service, engine = _get_service_engine(kind)
+    errors, render_args = _read_content("request", content_path, content, service, engine, quick)
 
     if len(errors) > 0:
         return "\n".join(errors)    # TODO: HTML escaping

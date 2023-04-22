@@ -4,6 +4,7 @@ import re
 import shutil
 
 from archivy.render.common import digest, get_param, get_cache
+from archivy.render.common import default_handlers, handler_info, handler_engine
 
 
 def render_office(
@@ -102,3 +103,21 @@ def render_office(
         shutil.copy2(cache_path, d_path)
 
     return True, None
+
+
+default_handlers.register_handler(
+    handler_info(
+        service     = "office",
+        alias       = "ofc",
+        opts        = {},
+        env         = {},
+        engines     = {
+            "draw": handler_engine(
+                exts =      [".odg", ".vsd"],
+                formats =   ["svg", "png", "pdf"]
+            ),
+        },
+        serviceUrl  = "local",
+        fun         = render_office
+    )
+)
