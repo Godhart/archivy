@@ -3,8 +3,6 @@ import os
 import shutil
 
 from archivy.render.common import digest, get_param, get_cache
-import random
-import datetime
 
 
 def render_local(
@@ -17,20 +15,14 @@ def render_local(
     page,
     force,
     opts,
+    custom_result_lookup = None,
 ):
+    # At this level only data from source is supported
+    if src == "":
+        raise ValueError("render_local requires src to be specified!")
+
     # Cache things
     cache, cache_dir = get_cache(opts)
-
-    # If data is given - save it into cache dir and then use as source
-    if src == "":
-        if cache:
-            src = os.path.join(
-                cache_path,
-                f"{int(datetime.datetime.now().timestamp*1000000)}-"
-                f"{random.randint(0, 1000000)}.inline"
-                )
-        else:
-            raise ValueError("Enable cache for rendering from inline data")
 
     if cache:
         if page == "":
@@ -40,6 +32,10 @@ def render_local(
         cache_path = os.path.join(cache_dir, f"{digest(file = src)}{c_page}.{dformat}")
     else:
         cache_path = ""
+
+    # Make target dir
+    if not os.path.exists(os.path.split(d_path)[0]):
+        os.makedirs(os.path.split(d_path)[0], exist_ok=True)
 
     # If image is not cached or forced - get image
     if force or get_param(opts, "RENDER_FORCE", "false").lower() == "true" \
@@ -53,12 +49,23 @@ def render_local(
         # Convert
         result = subprocess.run(serviceUrl)
 
-        # Store results to cache
-        if cache and cache_path != "":
-            os.makedirs(cache_dir, exist_ok=True)
-            if os.path.exists(cache_path):
-                os.unlink(cache_path)
-            shutil.copy2(d_path, cache_path)
+        if custom_result_lookup is None:
+            result_path = d_path
+        else:
+            result_path = custom_result_lookup()
+
+        if result_path is not None:
+            # Copy from custom path to destination path
+            if custom_result_lookup is not None:
+                if os.path.exists(d_path):
+                    os.unlink(d_path)
+                shutil.copy2(result_path, d_path)
+            # Store results to cache
+            if cache and cache_path != "":
+                os.makedirs(cache_dir, exist_ok=True)
+                if os.path.exists(cache_path):
+                    os.unlink(cache_path)
+                shutil.copy2(result_path, cache_path)
     else:
         # Otherwise copy cached data into destination path
         if os.path.exists(d_path):
