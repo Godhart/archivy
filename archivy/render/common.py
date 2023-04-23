@@ -1,6 +1,8 @@
 import os
 import re
 import hashlib
+import random
+import datetime
 
 
 PARAMS = {}
@@ -57,6 +59,17 @@ def to_abs_path(root_path, path):
     if path_abs[:len(drp_norm)+1] != drp_norm + PATH_SEP:
         raise ValueError(f"Path {path} is outside root path!")
     return path_abs
+
+
+def temp_file_path(opts, extension):
+    # Cache things
+    _, cache_dir = get_cache(opts)
+
+    return os.path.join(
+        cache_dir,
+        f"temp-{int(datetime.datetime.now().timestamp()*1000000)}-"
+        f"{random.randint(0, 1000000)}{extension}"
+        )
 
 
 class handler_engine(object):
