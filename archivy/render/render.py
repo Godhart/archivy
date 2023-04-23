@@ -74,6 +74,8 @@ from archivy.render.svg_tools import convert_to as svg_convert
 
 import archivy.render.office
 import archivy.render.drawio
+import archivy.render.symbolator
+
 # TODO: everything that is printed into HTML should be made safe
 
 
