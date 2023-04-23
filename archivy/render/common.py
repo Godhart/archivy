@@ -11,7 +11,7 @@ DATA_ROOT_PREFIX = None
 CACHE_ROOT_PATH = None
 PATH_SEP = os.path.join("a","b")[1]
 IMAGE_FORMATS = ("svg", "png", "pdf", "jpg")
-SSR_RE = r"(ss[qr](?:-[\w+](?:--[\w+])?)?)"
+SSR_RE = r"(ss[qr](?:-[\w]+(?:--[\w]+)?)?)"
 
 # TODO: data domains and paths to them
 
