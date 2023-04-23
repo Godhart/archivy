@@ -259,6 +259,7 @@ def render():
     kind    = request.json.get("kind")
     objid   = request.json.get("objid")
     content = request.json.get("content")
+    options = request.json.get("options")
     # TODO: check args
     try:
         if False:
@@ -266,7 +267,7 @@ def render():
     except FileExistsError:
         return Response("TODO", status=400)
     try:
-        result = ssr(kind, objid, content)
+        result = ssr(kind, objid, content, options)
     except Exception as e:
         return Response(f"{e}", status=422) # Unprocessable content
 
