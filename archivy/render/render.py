@@ -367,6 +367,8 @@ def to_diagram(
             if len(errors) == 0:
                 if rawsvg:
                     try:
+                        if os.path.exists(t_path+".err"):
+                            os.unlink(t_path+".err")
                         inline_svg = svg_resize(t_path, None, width, height, auto_fit_width, auto_fit_height)
                     except Exception as e:
                         errors.append(f"Placing SVG inline failed due to exception: {e}")
@@ -444,7 +446,7 @@ def _get_service_engine(kind):
     if len(kind) == 3:
         return quick, None, None
     if "--" in kind[4:]:
-        return quick, kind[4:].split("--", 1)
+        return quick, *(kind[4:].split("--", 1))
     else:
         return quick, kind[4:], None
 
@@ -472,10 +474,13 @@ def _read_content(content_source, content_path, content, service=None, engine=No
     else:
         fm_raw = content
         data = ""
-    try:
-        fm = yaml.safe_load(fm_raw)
-    except Exception as e:
-        return [f"[ERROR]:  Failed to parse header due to exception: {e}"], None
+    if fm_raw != "":
+        try:
+            fm = yaml.safe_load(fm_raw)
+        except Exception as e:
+            return [f"[ERROR]:  Failed to parse header due to exception: {e}"], None
+    else:
+        fm = {}
 
     render_args = {"opts": {}}
     errors = []
@@ -572,14 +577,18 @@ def _read_content(content_source, content_path, content, service=None, engine=No
 
     if len(errors) > 0:
         return errors, None
+    
+    # Dealias service
+    if service in common.default_handlers.aliases():
+        service = common.default_handlers.service_dealias(service)
 
     # Sanity checks for service and engine
     if service not in common.default_handlers.services():
-        errors.append(f"[ERROR]: Service {service} is not supported!")
+        errors.append(f"[ERROR]: Service '{service}' is not supported!")
     else:
         if engine is not None:
             if engine not in common.default_handlers.engines(service):
-                errors.append(f"[ERROR]: Engine {engine} is not supported by service '{service}'!")
+                errors.append(f"[ERROR]: Engine '{engine}' is not supported by service '{service}'!")
 
     if len(errors) > 0:
         return errors, None
