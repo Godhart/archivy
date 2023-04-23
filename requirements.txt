@@ -60,3 +60,12 @@ html2text
 flask_compress
 readability-lxml
 
+# Symbolator thing
+# NOTE: for symbolator installation use `pip install setuptools==57.5.0`
+# also install pygobject
+#   arch: sudo pacman -S python-gobject gtk4
+#   othr: see https://pygobject.readthedocs.io/en/latest/getting_started.html#windows-getting-started
+
+pycairo
+PyGObject
+symbolator
