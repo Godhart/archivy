@@ -26,6 +26,7 @@ from archivy.search import search, search_frontmatter_tags
 from archivy.config import Config
 
 import re
+import os
 
 
 @app.context_processor
@@ -82,7 +83,7 @@ def index():
         new_folder_form=forms.NewFolderForm(),
         delete_form=forms.DeleteFolderForm(),
         rename_form=forms.RenameDirectoryForm(),
-        view_only=0,
+        view_only=os.environ.get("ARCHIVY_VIEW_ONLY", "True").lower() != "false",
         tag_cloud=tag_cloud,
         most_recent=most_recent,
     )
@@ -227,7 +228,7 @@ def show_dataobj(dataobj_id):
         backlinks=backlinks,
         current_path=dataobj["dir"],
         form=forms.DeleteDataForm(),
-        view_only=0,
+        view_only=os.environ.get("ARCHIVY_VIEW_ONLY", "True").lower() != "false",
         search_enabled=app.config["SEARCH_CONF"]["enabled"],
         post_title_form=post_title_form,
         move_form=move_form,
