@@ -71,6 +71,7 @@ import archivy.render.common as common
 from archivy.render.common import get_param, to_abs_path, default_handlers
 from archivy.render.svg_tools import resize as svg_resize
 from archivy.render.svg_tools import convert_to as svg_convert
+from archivy.data import sanitize_path
 
 import archivy.render.office
 import archivy.render.drawio
@@ -355,9 +356,10 @@ def to_diagram(
     if not downloadOnly:
         img_path = t_path.replace("\\", "/")
         if common.IMG_ROOT_PATH is not None:
-            img_path = t_path[len(common.IMG_ROOT_PATH):]
+            img_path = img_path[len(common.IMG_ROOT_PATH):]
         if common.IMG_ROOT_PREFIX is not None:
             img_path = common.IMG_ROOT_PREFIX + img_path
+        img_path = sanitize_path(img_path)
         img_tag = ""
         result = []
         div_ref = ""
