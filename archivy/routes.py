@@ -372,10 +372,23 @@ def bookmarklet():
     return render_template("bookmarklet.html", title="Bookmarklet")
 
 
-@app.route("/images/<filename>")
-def serve_image(filename):
+# @app.route("/images/<filename>")
+# def serve_image(filename):
+#     if filename and data.valid_image_filename(filename):
+#         image_path = data.image_exists(filename)
+#         if image_path:
+#             return send_file(image_path)
+#         else:
+#             return "Image not found", 404
+#     else:
+#         return "Invalid file request", 413
+
+
+@app.route("/images/<path:path>")
+def serve_image2(path):
+    filename = os.path.split(path)[1]
     if filename and data.valid_image_filename(filename):
-        image_path = data.image_exists(filename)
+        image_path = data.image_exists2(path)
         if image_path:
             return send_file(image_path)
         else:

@@ -460,3 +460,21 @@ def image_exists(filename: str):
     if image_path.exists() and is_relative_to(image_path, images_dir):
         return str(image_path)
     return 0
+
+
+def sanitize_path(path: str):
+    path_items = path.split("/")
+    sanitized = []
+    for item in path_items:
+        sanitized.append(item) # secure_filename(item))
+    sanitized = "/".join(sanitized)
+    return sanitized
+
+
+def image_exists2(path: str):
+    sanitized = sanitize_path(path)
+    images_dir = Path(current_app.config["USER_DIR"]) / "images"
+    image_path = images_dir / sanitized
+    if image_path.exists() and is_relative_to(image_path, images_dir):
+        return str(image_path)
+    return 0
