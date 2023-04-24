@@ -4,11 +4,11 @@ import os
 import shutil
 
 def render_symbolator(
-    data,           # NOTE: data is not used by render_drawio
+    data,
     src,
     dformat,
     d_path,
-    serviceUrl,     # NOTE: serviceUrl is not used by render_drawio
+    serviceUrl,     # NOTE: serviceUrl is not used by render_symbolator
     engine,
     page,
     force,
@@ -23,7 +23,7 @@ def render_symbolator(
         with open(src, "w", encoding='utf-8') as f:
             f.write(data)
 
-    # Command line for converting image with drawio
+    # Command line for generating image with symbolator
     sym_o = d_path+".tmp"
     symbolator_opts = ["-i", src, "-f", dformat, "-o", sym_o, ]
 
@@ -56,7 +56,11 @@ def render_symbolator(
                     f.write(f"Failed to produce result!")
                 return None
 
+    if os.path.exists(sym_o):
+        # TODO: won't there be conflicts with other threads?
+        shutil.rmtree(sym_o)
     os.makedirs(sym_o, exist_ok=True)
+
     result = render_local(data, src, dformat, d_path, serviceUrl, engine, page, force, opts, custom_result_lookup)
 
     shutil.rmtree(sym_o)
