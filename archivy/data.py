@@ -13,6 +13,9 @@ from werkzeug.datastructures import FileStorage
 from archivy.search import remove_from_index
 
 
+SEP = os.path.join("a", "b")[1]
+
+
 # FIXME: ugly hack to make sure the app path is evaluated at the right time
 def get_data_dir():
     """Returns the directory where dataobjs are stored"""
@@ -43,7 +46,7 @@ FILE_GLOB = "[0-9]*-*.md"
 
 def get_by_id(dataobj_id):
     """Returns filename of dataobj of given id"""
-    dataobj_id = dataobj_id.replace("--", "/")
+    dataobj_id = dataobj_id.replace("--", SEP)
     results = list(get_data_dir().rglob(f"{dataobj_id}.md"))
     return results[0] if results else None
 
@@ -53,7 +56,7 @@ def load_data(filepath):
     if not isinstance(filepath, Path):
         filepath = Path(filepath)
     relative_path = filepath.relative_to(get_data_dir())
-    id = str(relative_path).replace("/", "--")[:-3]
+    id = str(relative_path).replace(SEP, "--")[:-3]
     data["id"] = id
     return data
 
