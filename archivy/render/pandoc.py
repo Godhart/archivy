@@ -86,6 +86,8 @@ def render_pandoc_html(
 
         page = re.sub(common.IMG_ROOT_PATH.replace("\\", "\\\\"), "/images", page)
 
+        # TODO: ripoff only necessary part of document (skip/include by specified headers)
+
         with open(path, "w", encoding='utf-8') as f:
             f.write(page)
 
