@@ -108,7 +108,7 @@ class ssr_handlers(object):
 
     _supported_fields = {
         "ref"         : ("",      str),
-        "format"      : ("svg",   str),
+        "format"      : (None,    str),
         "src"         : ("",      str),
         "dformat"     : ("",      str),
         "rawsvg"      : (os.environ.get("RENDER_DEFAULT_RAWSVG", "false").lower() == "true",
