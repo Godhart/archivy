@@ -13,7 +13,7 @@ def dprint(*arg, **argv):
         print(*arg, **argv)
 
 
-def resizeSVG(svg, width, height, auto_fit_width, auto_fit_height):
+def resizeSVG(svg, width, height, auto_fit_width, auto_fit_height, background="#FFFFFF"):
     resize = width != "" or height != ""
 
     if resize:
@@ -34,7 +34,8 @@ def resizeSVG(svg, width, height, auto_fit_width, auto_fit_height):
         svg_style = ""
 
     if "background:" not in svg_style:
-        svg_style += "background:#FFFFFF;"
+        if background is not None:
+            svg_style += f"background:{background};"
 
     if resize and width != "":
         svg.setAttribute("width", width)
@@ -71,7 +72,7 @@ def setDoctype(document, doctype):
     return newdocument
 
 
-def resize(input_path, output_path, width="", height="", auto_fit_width="", auto_fit_height=""):
+def resize(input_path, output_path, width="", height="", auto_fit_width="", auto_fit_height="", background="#FFFFFF"):
     resize = True
     if width == "-" and height == "-":
         resize = False
@@ -100,7 +101,7 @@ def resize(input_path, output_path, width="", height="", auto_fit_width="", auto
             if resize:
                 dprint(
                     "\n\n`resizeSVG '" + width + "' '" + height + "' '" + auto_fit_width + "' '" + auto_fit_height + "'`\n\n".replace("\n", "\n<br>"))
-                resizeSVG(svg, width, height, auto_fit_width, auto_fit_height)
+                resizeSVG(svg, width, height, auto_fit_width, auto_fit_height, background)
             result = svg.toxml()
         except Exception as e:
             err_msg = f"SVG resize failed due to exception: {e}"
