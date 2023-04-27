@@ -31,7 +31,7 @@ def render_symbolator(
 
     transp = opts.get("transparent", None)
     if transp is not None and transp.lower() in ("yes", "true"):
-        symbolator_opts += ["-t"]
+        symbolator_opts += ["-t"]   # TODO: transparency not works
 
     if opts.get("no-type", False) is True:
         symbolator_opts += ["--no-type"]
