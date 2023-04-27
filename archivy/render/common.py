@@ -131,6 +131,7 @@ class ssr_handlers(object):
         "html_default_out_width": (None, str),
         "inversion"             : ("auto", str),
         "dark_theme"            : (False, bool),
+        "background"            : (None, str),
     }
 
     _opts = (
@@ -143,6 +144,7 @@ class ssr_handlers(object):
         "html_default_out_width",
         "inversion"             ,
         "dark_theme"            ,
+        "background"            ,
     )
 
     _env_vars = (
@@ -155,6 +157,7 @@ class ssr_handlers(object):
         "RENDER_CACHE_PATH"     ,
 
         "RENDER_FORCE"          ,
+        "RENDER_DEFAULT_BACKGROUND",
     )
 
     def __init__(self):
