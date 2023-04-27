@@ -16,6 +16,8 @@ def render_local(
     force,
     opts,
     custom_result_lookup = None,
+    post_process = None,
+    custom_cache = None,
 ):
     # At this level only data from source is supported
     if src == "":
@@ -55,6 +57,9 @@ def render_local(
             result_path = custom_result_lookup()
 
         if result_path is not None:
+            # Do necessary post processing
+            if post_process is not None:
+                post_process(result_path)
             # Copy from custom path to destination path
             if custom_result_lookup is not None:
                 if os.path.exists(d_path):
@@ -66,10 +71,36 @@ def render_local(
                 if os.path.exists(cache_path):
                     os.unlink(cache_path)
                 shutil.copy2(result_path, cache_path)
+                if custom_cache is not None:
+                    if os.path.exists(cache_path+".custom"):
+                        shutil.rmtree(cache_path+".custom")
+                    for custom_name, custom_path in custom_cache().items():
+                        if not os.path.exists(custom_path):
+                            continue
+                        cached_path = os.path.join(cache_path+".custom", custom_name)
+                        if os.path.isfile(custom_path):
+                            shutil.copy2(custom_path, cached_path)
+                        else:
+                            shutil.copytree(custom_path, cached_path)
+
     else:
         # Otherwise copy cached data into destination path
         if os.path.exists(d_path):
             os.unlink(d_path)
         shutil.copy2(cache_path, d_path)
+        if custom_cache is not None:
+            for custom_name, custom_path in custom_cache().items():
+                cached_path = os.path.join(cache_path+".custom", custom_name)
+                if os.path.exists(custom_path):
+                    if os.path.isfile(custom_path):
+                        os.unlink(custom_path)
+                    else:
+                        shutil.rmtree(custom_path)
+                if not os.path.exists(cached_path):
+                    continue
+                if os.path.isfile(cached_path):
+                    shutil.copy2(cached_path, custom_path)
+                else:
+                    shutil.copytree(cached_path, custom_path)
 
     return True, None
