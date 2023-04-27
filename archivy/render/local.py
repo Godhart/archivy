@@ -29,6 +29,7 @@ def render_local(
     if cache:
         if page == "":
             c_page = ""
+        # TODO: some other options should also modify name
         else:
             c_page = "-" + page
         cache_path = os.path.join(cache_dir, f"{digest(file = src)}{c_page}.{dformat}")
@@ -85,6 +86,7 @@ def render_local(
 
     else:
         # Otherwise copy cached data into destination path
+        # TODO: replace only if data is different
         if os.path.exists(d_path):
             os.unlink(d_path)
         shutil.copy2(cache_path, d_path)
