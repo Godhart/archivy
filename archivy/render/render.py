@@ -71,11 +71,13 @@ import archivy.render.common as common
 from archivy.render.common import get_param, to_abs_path, default_handlers
 from archivy.render.svg_tools import resize as svg_resize
 from archivy.render.svg_tools import convert_to as svg_convert
+from archivy.render.html_tools import get_body as html_get_body
 from archivy.data import sanitize_path
 
 import archivy.render.office
 import archivy.render.drawio
 import archivy.render.symbolator
+import archivy.render.pandoc
 
 # TODO: everything that is printed into HTML should be made safe
 
@@ -106,6 +108,8 @@ def to_diagram(
     is_latex_output = False # NOTE: same case as above, but this time value is always False
     auto_fit_width = None
     auto_fit_height = None
+
+    background = opts.get("background", [os.environ.get("RENDER_DEFAULT_BACKGROUND", "#FFFFFF"), "#FFFFFF00"][rawsvg])
 
     errors = []
 
@@ -149,6 +153,10 @@ def to_diagram(
             format = "svg"      # SVG for HTML
         else:
             format = "png"      # PNG for anything else
+        # If format is not supported by tool - fallback to first supported
+        # TODO: make sure it's compatible with output
+        if format not in formats:
+            format = formats[0]
 
     if format in formats:
         # If format is supported by service
@@ -221,7 +229,6 @@ def to_diagram(
         align   = "center"
         auto_fit_width = "84%"
         auto_fit_height = "800px"
-        inversion = ""
     else:
         width   = opts.get("width", None)
         height  = opts.get("height", None)
@@ -252,23 +259,23 @@ def to_diagram(
         if auto_fit_height is None:
             auto_fit_height = get_param(opts, "RENDER_AUTO_FIT_HEIGHT", "800px")
 
-        inversion   = opts.get("inversion", "auto").lower()
-        dark_theme = opts.get("dark-theme", False)
-        if inversion not in ("auto", "opposite", "yes", "true", "no", "false"):
-            raise ValueError(f"'inversion' property should be on of ('auto', 'none', 'yes', 'true', 'no', 'false'), got '{inversion}'!")
-        if inversion in ('yes', 'true'):
-            inversion = True
-        elif inversion in ('no', 'false'):
-            inversion = False
-        elif inversion == "auto":
-            inversion = dark_theme
-        else:
-            inversion = not dark_theme
+    inversion   = opts.get("inversion", "auto").lower()
+    dark_theme = opts.get("dark-theme", False)
+    if inversion not in ("auto", "opposite", "yes", "true", "no", "false"):
+        raise ValueError(f"'inversion' property should be on of ('auto', 'none', 'yes', 'true', 'no', 'false'), got '{inversion}'!")
+    if inversion in ('yes', 'true'):
+        inversion = True
+    elif inversion in ('no', 'false'):
+        inversion = False
+    elif inversion == "auto":
+        inversion = dark_theme
+    else:
+        inversion = not dark_theme
 
-        if not inversion:
-            inversion = ""
-        else:
-            inversion = 'style="filter: brightness(0.85) invert() hue-rotate(180deg);"'
+    if not inversion:
+        inversion = ""
+    else:
+        inversion = 'filter: brightness(0.85) invert() hue-rotate(180deg);'
 
 
     # Determine download and target path
@@ -339,7 +346,7 @@ def to_diagram(
         # Get SVG out of HTML using resizeSVG (it fits for current usecases)
         if dformat == "svg" and service == "splash":
             try:
-                svg_resize(d_path, d_path, "-", "-")    # width and height are set to '-' to avoid resize
+                svg_resize(d_path, d_path, "-", "-", background=background)    # width and height are set to '-' to avoid resize
             except Exception as e:
                 errors.append(f"Ripping SVG out of splash has been failed due to exception: {e}")
 
@@ -366,14 +373,17 @@ def to_diagram(
         if rawsvg and ref != "":
             div_ref = f'id="{ref}"'
 
-        result.append(f'<div align="{align}" {div_ref} {inversion}>')
         if format in common.IMAGE_FORMATS:
+            image_style = ""
+            if inversion != "":
+                image_style = f'style="{inversion}"'
+            result.append(f'<div align="{align}" {div_ref} {image_style}>')
             if len(errors) == 0:
                 if rawsvg:
                     try:
                         if os.path.exists(t_path+".err"):
                             os.unlink(t_path+".err")
-                        inline_svg = svg_resize(t_path, None, width, height, auto_fit_width, auto_fit_height)
+                        inline_svg = svg_resize(t_path, None, width, height, auto_fit_width, auto_fit_height, background)
                     except Exception as e:
                         errors.append(f"Placing SVG inline failed due to exception: {e}")
 
@@ -398,10 +408,16 @@ def to_diagram(
             else:
                 for err in errors:
                     result.append(f"<code>{err}</code>")
+        elif format == "html":
+            result.append(f'<div {div_ref}>')
+            html_content = html_get_body(t_path, inversion)
+            # TODO: apply inversion to images
+            result.append(html_content)
         else:
-            errors.append("Non images formats are not supported yet!")
+            result.append(f'<div align="{align}" {div_ref}>')
+            errors.append(f"Data format '{format}' is not supported yet!")
             if len(errors) == 0:
-                pass    # TODO: support for non images formats
+                pass
             else:
                 for err in errors:
                     result.append(f"<p>{err}</p>")
