@@ -116,6 +116,10 @@ class Renderer {
             .then((response) => {
                     if (response.data != null) {
                         target.innerHTML = response.data
+                        let scripts = target.getElementsByTagName('script');
+                        for (let ix = 0; ix < scripts.length; ix++) {
+                            eval(scripts[ix].text);
+                        }
                     }
                 }
             )
