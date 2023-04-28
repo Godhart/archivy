@@ -56,13 +56,13 @@ def render_y4s_html(
 
     width = get_param(opts, "width", None)
     if width in (None, ""):
-        width = opts.get("auto-fit-width")
+        width = opts.get("auto-fit-width", None)
     if width in (None, ""):
         width = "100%"
 
     height = get_param(opts, "height", None)
     if height in (None, ""):
-        height = opts.get("auto-fit-height")
+        height = opts.get("auto-fit-height", None)
     if height in (None, ""):
         height = "800px"
 
