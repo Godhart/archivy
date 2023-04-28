@@ -78,6 +78,7 @@ import archivy.render.office
 import archivy.render.drawio
 import archivy.render.symbolator
 import archivy.render.pandoc
+import archivy.render.y4s
 
 # TODO: everything that is printed into HTML should be made safe
 
@@ -409,9 +410,12 @@ def to_diagram(
                 for err in errors:
                     result.append(f"<code>{err}</code>")
         elif format == "html":
-            result.append(f'<div {div_ref}>')
-            html_content = html_get_body(t_path, inversion)
-            # TODO: apply inversion to images
+            if opts.get("inversion-all", False) is True:        # NOTE: Implicit option, defined and set only by specific renders
+                result.append(f'<div {div_ref} style="{inversion}">')
+                html_content = html_get_body(t_path, "no")
+            else:
+                result.append(f'<div {div_ref}>')
+                html_content = html_get_body(t_path, inversion)
             result.append(html_content)
         else:
             result.append(f'<div align="{align}" {div_ref}>')
