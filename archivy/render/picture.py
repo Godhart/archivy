@@ -1,4 +1,3 @@
-from archivy.render.local import render_local
 from archivy.render.common import default_handlers, handler_info, handler_engine
 import os
 import shutil
