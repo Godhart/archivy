@@ -79,6 +79,7 @@ import archivy.render.drawio
 import archivy.render.symbolator
 import archivy.render.pandoc
 import archivy.render.y4s
+import archivy.render.picture
 
 # TODO: everything that is printed into HTML should be made safe
 
