@@ -126,11 +126,11 @@ class ssr_handlers(object):
         "width"                 : (None, str),
         "height"                : (None, str),
         "align"                 : (None, str),
-        "auto_fit_width"        : (None, str),
-        "auto_fit_height"       : (None, str),
-        "html_default_out_width": (None, str),
+        "auto-fit-width"        : (None, str),
+        "auto-fit-height"       : (None, str),
+        "html-default-out-width": (None, str),
         "inversion"             : ("auto", str),
-        "dark_theme"            : (False, bool),
+        "dark-theme"            : (False, bool),
         "background"            : (None, str),
     }
 
@@ -139,11 +139,11 @@ class ssr_handlers(object):
         "width"                 ,
         "height"                ,
         "align"                 ,
-        "auto_fit_width"        ,
-        "auto_fit_height"       ,
-        "html_default_out_width",
+        "auto-fit-width"        ,
+        "auto-fit-height"       ,
+        "html-default-out-width",
         "inversion"             ,
-        "dark_theme"            ,
+        "dark-theme"            ,
         "background"            ,
     )
 

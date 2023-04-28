@@ -228,16 +228,16 @@ def to_diagram(
         width   = ""
         height  = ""
         align   = "center"
-        auto_fit_width = "84%"
+        auto_fit_width = "100%"
         auto_fit_height = "800px"
     else:
         width   = opts.get("width", None)
         height  = opts.get("height", None)
         align   = opts.get("align", None)
         if auto_fit_width is None:
-            auto_fit_width = opts.get("auto_fit_width", None)
+            auto_fit_width = opts.get("auto-fit-width", None)
         if auto_fit_height is None:
-            auto_fit_height = opts.get("auto_fit_height", None)
+            auto_fit_height = opts.get("auto-fit-height", None)
 
         html_default_out_width = get_param(
             opts, "html_default_out_width", html_default_out_width_fallback)
