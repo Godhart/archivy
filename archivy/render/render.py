@@ -432,7 +432,7 @@ def to_diagram(
         # Add caption
         if caption != "":
             result.append(f'<div align="{align}">')
-            link = opts.get("link", None)
+            link = opts.get("_link_", None)
             if link is None and format in common.IMAGE_FORMATS:
                 link = img_path
             if link != "":
