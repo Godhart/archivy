@@ -55,12 +55,16 @@ def render_y4s_html(
         serviceUrl.append("--shell")
 
     width = get_param(opts, "width", None)
-    if width not in (None, ""):
-        serviceUrl += ["--width", width]
+    if width in (None, ""):
+        width = opts.get("auto-fit-width")
+    if width in (None, ""):
+        width = "100%"
 
     height = get_param(opts, "height", None)
-    if height not in (None, ""):
-        serviceUrl += ["--height", height]
+    if height in (None, ""):
+        height = opts.get("auto-fit-height")
+    if height in (None, ""):
+        height = "800px"
 
     zoom = get_param(opts, "y4s-zoom", False)
     if zoom is not True:
