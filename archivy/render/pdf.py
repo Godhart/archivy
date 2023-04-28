@@ -53,6 +53,8 @@ def render_pdf(
     with open(d_path, "w", encoding='utf-8') as f:
         f.write(html)
 
+    opts["link"] = pdf_rel_path
+
     result = True, None
 
     return result
