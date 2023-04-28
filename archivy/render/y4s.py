@@ -62,7 +62,7 @@ def render_y4s_html(
     if height not in (None, ""):
         serviceUrl += ["--height", height]
 
-    zoom = get_param(opts, "zoom", False)
+    zoom = get_param(opts, "y4s-zoom", False)
     if zoom is not True:
         serviceUrl += ["--zoom", "no"]
 
