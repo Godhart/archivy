@@ -25,6 +25,8 @@ def render_y4s_html(
         raise ValueError("'y4s-id' option is mandatory for y4s!")
     y4s_id = re.sub(r"\\W", "-", y4s_id)
 
+    y4s_zoom = opts.get("y4s-zoom", False)
+
     # If data is given - save it into cache dir and then use as source
     src_is_temporary = False
     if src == "":
@@ -52,6 +54,18 @@ def render_y4s_html(
     if get_param(opts, "y4s_-hell", False) is True:
         serviceUrl.append("--shell")
 
+    width = get_param(opts, "width", None)
+    if width not in (None, ""):
+        serviceUrl += ["--width", width]
+
+    height = get_param(opts, "height", None)
+    if height not in (None, ""):
+        serviceUrl += ["--height", height]
+
+    zoom = get_param(opts, "zoom", False)
+    if zoom is not True:
+        serviceUrl += ["--zoom", "no"]
+
     serviceUrl += [src, d_path, ]
 
     result = render_local(data, src, dformat, d_path, serviceUrl, engine, page, force, opts)
@@ -70,6 +84,7 @@ default_handlers.register_handler(
             "y4s-id"     : (None, str),   # id for y4s drawing
             "y4s-root"   : (None, str),   # Root of y4s files to lookup
             "y4s-shell"  : (None, bool),  # True to box-around
+            "y4s-zoom"   : (False, bool), # True to enable zoom on D3HW diagram
             "inversion-all"  : (True, bool),  # Option to force apply inversion to whole div
         },
         env         = {
