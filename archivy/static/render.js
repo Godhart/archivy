@@ -13,6 +13,56 @@ class Renderer {
         })
     }
 
+    static makeCopier(block, button, feedback) {
+        /* based on https://jordemort.dev/blog/adding-copy-buttons-to-code-blocks/ */
+        let code = block.getElementsByTagName("code")[0];
+      
+        async function copier() {
+            await navigator.clipboard.writeText(code.innerText);
+            button.classList.add("clicked");
+            feedback.style.display = "block";
+        
+            setTimeout(() => {
+                button.classList.remove("clicked")
+            }, 100);
+        
+            setTimeout(() => {
+                feedback.style.display = "none";
+            }, 500);
+        }
+        
+        return copier;
+    }
+
+    static render_copybutton(kind, objid, content, datanode) {
+        return new Promise((resolve, reject) => {
+            /* based on https://jordemort.dev/blog/adding-copy-buttons-to-code-blocks/ */
+
+            let block = datanode;
+
+            const copyButton = document.getElementById("copyButtonTemplate").content.firstElementChild;
+            const copiedFeedback = document.getElementById("copiedFeedbackTemplate").content.firstElementChild;
+
+            let div = document.createElement("div");
+            div.classList.add("code-buttons");
+
+            let feedback = copiedFeedback.cloneNode(true);
+            feedback.style.display = "none";
+
+            let button = copyButton.cloneNode(true);
+            button.addEventListener("click", Renderer.makeCopier(block, button, feedback));
+
+            block.parentNode.insertBefore(div, block);
+            div.appendChild(button);
+            div.appendChild(feedback);
+
+            resolve({
+                "ok": true,
+                "data": null
+            })
+        })
+    }
+
     static render_ssr(kind, objid, content, datanode) {
         return new Promise((resolve, reject) => {
             const dark = datanode.getAttribute("data-dark");
@@ -82,6 +132,9 @@ class Renderer {
         "raw": {
             "function"  : this.render_raw
         },
+        "copybutton": {
+            "function"  : this.render_copybutton
+        },
         "ssr" : {
             "function"  : this.render_ssr
         },
@@ -114,7 +167,7 @@ class Renderer {
         if (this.renders()[this.render_map(kind)] !== undefined) {
             this.renders()[this.render_map(kind)].function(kind, objid, content, datanode)
             .then((response) => {
-                    if (response.data != null) {
+                    if (response.data !== null && target !== null) {
                         target.innerHTML = response.data
                         let scripts = target.getElementsByTagName('script');
                         for (let ix = 0; ix < scripts.length; ix++) {
@@ -124,11 +177,16 @@ class Renderer {
                 }
             )
             .catch((err) => {
-                target.innerHTML = `<pre>Error: ${err.message}</pre>`
+                if (target !== null) {
+                    target.innerHTML = `<pre>Error: ${err.message}</pre>`
+                }
                 console.error(`Fetch problem: ${err.message}`)
             })
         } else {
-            target.innerHTML = `<pre class="hljs"><code>Error: render ${kind} is not supported!\n\n${content}</code></pre>`
+            if (target !== null) {
+                target.innerHTML = `<pre class="hljs"><code>Error: render ${kind} is not supported!\n\n${content}</code></pre>`
+            }
+            console.error(`render ${kind} is not supported!`)
         }
 
     }
@@ -152,15 +210,27 @@ class Renderer {
             if (item.getAttribute("data-needs-update") != "true") {
                 continue
             }
+            let data_kind = item.getAttribute("data-kind")
             let content = item.getElementsByClassName("lazyrender-content")
             if (content.length != 1) {
-                continue
+                if (data_kind != "copybutton") {
+                    continue
+                }
+                content = null
+            } else {
+                content = content[0].innerHTML
             }
+
             let target = item.getElementsByClassName("lazyrender-result")
             if (target.length != 1) {
-                continue
+                if (data_kind != "copybutton") {
+                    continue
+                }
+                target = null
+            } else {
+                target = target[0]
             }
-            this.render(item.getAttribute("data-kind"), item.getAttribute("data-objid"), content[0].innerHTML, target[0], item)
+            this.render(data_kind, item.getAttribute("data-objid"), content, target, item)
             item.setAttribute("data-needs-update", "false")
         }
     }
