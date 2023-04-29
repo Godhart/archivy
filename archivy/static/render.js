@@ -110,7 +110,7 @@ class Renderer {
     }
 
     static render (kind, objid, content, target, datanode) {
-        console.log(`render(${kind}, ${objid}, ${content}, ${target})`)
+        // console.log(`render(${kind}, ${objid}, ${content}, ${target})`)
         if (this.renders()[this.render_map(kind)] !== undefined) {
             this.renders()[this.render_map(kind)].function(kind, objid, content, datanode)
             .then((response) => {
