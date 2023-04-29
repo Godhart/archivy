@@ -1,6 +1,17 @@
 <link rel="stylesheet" href="/static/math.css">
 <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
-<link rel="stylesheet" href="/static/monokai.css">
+
+{# Themes sources: #}
+{# https://jmblog.github.io/color-themes-for-highlightjs/ #}
+{# https://github.com/Yukaii/github-highlightjs-themes #}
+{# https://draculatheme.com/highlightjs #}
+
+{% if config.THEME_CONF.get('use_theme_dark', False) %}
+<link rel="stylesheet" href="/static/highlightjs/themes/dracula/dracula.css">
+{% else %}
+<link rel="stylesheet" href="/static/highlightjs/themes/yukaii/github-light-default.css">
+{% endif %}
+
 <script src="/static/math.js">
 </script>
 <script src="/static/highlightjs/highlight.min.js"></script> 
