@@ -79,3 +79,8 @@ db.json
 data/
 .vim/
 .vscode/
+
+# Temorary files
+.internal_dir
+.out
+.render-cache
