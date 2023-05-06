@@ -13,7 +13,7 @@ def dprint(*arg, **argv):
         print(*arg, **argv)
 
 
-def resizeSVG(svg, width, height, auto_fit_width, auto_fit_height, background="#FFFFFF"):
+def modify_svg(svg, width, height, auto_fit_width, auto_fit_height, background="#FFFFFF"):
     resize = width != "" or height != ""
 
     if resize:
@@ -72,7 +72,7 @@ def setDoctype(document, doctype):
     return newdocument
 
 
-def resize(input_path, output_path, width="", height="", auto_fit_width="", auto_fit_height="", background="#FFFFFF"):
+def modify(input_path, output_path, width="", height="", auto_fit_width="", auto_fit_height="", background="#FFFFFF"):
     resize = True
     if width == "-" and height == "-":
         resize = False
@@ -100,11 +100,11 @@ def resize(input_path, output_path, width="", height="", auto_fit_width="", auto
             svg = svg_doc.getElementsByTagName("svg")[0]
             if resize:
                 dprint(
-                    "\n\n`resizeSVG '" + width + "' '" + height + "' '" + auto_fit_width + "' '" + auto_fit_height + "'`\n\n".replace("\n", "\n<br>"))
-                resizeSVG(svg, width, height, auto_fit_width, auto_fit_height, background)
+                    "\n\n`modify_svg '" + width + "' '" + height + "' '" + auto_fit_width + "' '" + auto_fit_height + "'`\n\n".replace("\n", "\n<br>"))
+                modify_svg(svg, width, height, auto_fit_width, auto_fit_height, background)
             result = svg.toxml()
         except Exception as e:
-            err_msg = f"SVG resize failed due to exception: {e}"
+            err_msg = f"SVG modify failed due to exception: {e}"
 
     if err_msg is not None:
         with open(err_path, "w") as f:
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 3:
         print("""```
-Usage: python3 _resizeSvg.py <input> <output> [width] [height] [auto_fit_width] [auto_fit_height]
+Usage: python3 svg_tools.py <input> <output> [width] [height] [auto_fit_width] [auto_fit_height]
 ```""")
         exit(0)
 
@@ -152,6 +152,6 @@ Usage: python3 _resizeSvg.py <input> <output> [width] [height] [auto_fit_width] 
     input_path = sys.argv[1]
     output_path = sys.argv[2]
 
-    resize(input_path, output_path, width, height, auto_fit_width, auto_fit_height)
+    modify(input_path, output_path, width, height, auto_fit_width, auto_fit_height)
 
     exit(0)
