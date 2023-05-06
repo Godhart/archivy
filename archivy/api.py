@@ -119,7 +119,7 @@ def update_dataobj(dataobj_id):
     """
     Updates object of given id.
 
-    Paramter in JSON body:
+    Parameter in JSON body:
 
     - **content**: markdown text of new dataobj.
     """
@@ -137,14 +137,18 @@ def update_dataobj_frontmatter(dataobj_id):
     """
     Updates frontmatter of object of given id.
 
-    Paramter in JSON body:
+    Parameter in JSON body:
 
-    - **title**: the new title of the dataobj.
+    - **title**: (optional) the new title of the dataobj.
+    - **tags**:  (optional) the tags.
     """
 
-    new_frontmatter = {
-        "title": request.json.get("title"),
-    }
+    new_frontmatter = {}
+    for key in ("title", "tags", ):
+        if key in request.json:
+            new_frontmatter[key] = request.json[key]
+
+    # TODO: error in case of unknown key in json
 
     try:
         data.update_item_frontmatter(dataobj_id, new_frontmatter)
