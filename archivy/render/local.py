@@ -2,7 +2,7 @@ import subprocess
 import os
 import shutil
 
-from archivy.render.common import digest, get_param, get_cache
+from archivy.render.common import get_param, get_cached_name, update_from_cache, update_cache, sync_files
 
 
 def render_local(
@@ -15,94 +15,99 @@ def render_local(
     page,
     force,
     opts,
+    output_path = None,
+    output_path_cleanup = True,
     custom_result_lookup = None,
     post_process = None,
     custom_cache = None,
+    extras = None,
+    shell = False,
 ):
     # At this level only data from source is supported
     if src == "":
         raise ValueError("render_local requires src to be specified!")
+    
+    if extras is None:
+        extras = {}
 
-    # Cache things
-    cache, cache_dir = get_cache(opts)
+    if "service" not in extras:
+        extras['service'] = serviceUrl[0]
 
-    if cache:
-        if page == "":
-            c_page = ""
-        # TODO: some other options should also modify name
-        else:
-            c_page = "-" + page
-        cache_path = os.path.join(cache_dir, f"{digest(file = src)}{c_page}.{dformat}")
-    else:
-        cache_path = ""
+    if "engine" not in extras:
+        extras['engine'] = engine
 
-    # Make target dir
-    if not os.path.exists(os.path.split(d_path)[0]):
-        os.makedirs(os.path.split(d_path)[0], exist_ok=True)
+    cached_name = get_cached_name(src, dformat, page, extras)
 
     # If image is not cached or forced - get image
     if force or get_param(opts, "RENDER_FORCE", "false").lower() == "true" \
-    or not cache or not os.path.exists(cache_path):
-        # Write error message, it would be overwritten in case of success
-        with open(d_path, "w", encoding='utf-8') as f:
-            f.write("Failed to get diagram image")
-        # Libre Office don't allows to set output file name,
-        # so we need to do more actions than usual
+    or not update_from_cache(cached_name, d_path, opts, custom_cache):
 
-        # Convert
-        result = subprocess.run(serviceUrl)
-
-        if custom_result_lookup is None:
+        # Determine output results path
+        if output_path is None:
             result_path = d_path
         else:
+            result_path = output_path
+
+        # Determine whether or not output path is dir
+        if result_path[-1:] in ("\\", "/"):
+            result_path_is_dir = True
+            result_path = result_path[:-1]
+        else:
+            result_path_is_dir = False
+
+        # Cleanup result path
+        if os.path.exists(result_path):
+            if os.path.isfile(result_path):
+                os.unlink(result_path)
+            else:
+                shutil.rmtree(result_path)
+
+        # Make target dir
+        if not os.path.exists(os.path.split(d_path)[0]):
+            os.makedirs(os.path.split(d_path)[0], exist_ok=True)
+
+        # Make output host dir
+        if not os.path.exists(os.path.split(result_path)[0]):
+            os.makedirs(os.path.split(result_path)[0], exist_ok=True)
+
+        # Make output dir if necessary:
+        if result_path_is_dir:
+            os.makedirs(result_path, exist_ok=True)
+
+        # Convert
+        sub_result = subprocess.run(serviceUrl, shell=shell)
+
+        # Lookup for necessary result output if specified
+        if custom_result_lookup is not None:
             result_path = custom_result_lookup()
 
-        if result_path is not None:
+        if os.path.exists(result_path):
             # Do necessary post processing
             if post_process is not None:
                 post_process(result_path)
             # Copy from custom path to destination path
-            if custom_result_lookup is not None:
-                if os.path.exists(d_path):
-                    os.unlink(d_path)
-                shutil.copy2(result_path, d_path)
+            if result_path != d_path:
+                sync_files(result_path, d_path)
             # Store results to cache
-            if cache and cache_path != "":
-                os.makedirs(cache_dir, exist_ok=True)
-                if os.path.exists(cache_path):
-                    os.unlink(cache_path)
-                shutil.copy2(result_path, cache_path)
-                if custom_cache is not None:
-                    if os.path.exists(cache_path+".custom"):
-                        shutil.rmtree(cache_path+".custom")
-                    for custom_name, custom_path in custom_cache().items():
-                        if not os.path.exists(custom_path):
-                            continue
-                        cached_path = os.path.join(cache_path+".custom", custom_name)
-                        if os.path.isfile(custom_path):
-                            shutil.copy2(custom_path, cached_path)
-                        else:
-                            shutil.copytree(custom_path, cached_path)
+            update_cache(cached_name, d_path, opts, custom_cache)
 
-    else:
-        # Otherwise copy cached data into destination path
-        # TODO: replace only if data is different
-        if os.path.exists(d_path):
-            os.unlink(d_path)
-        shutil.copy2(cache_path, d_path)
-        if custom_cache is not None:
-            for custom_name, custom_path in custom_cache().items():
-                cached_path = os.path.join(cache_path+".custom", custom_name)
-                if os.path.exists(custom_path):
-                    if os.path.isfile(custom_path):
-                        os.unlink(custom_path)
+            # Cleanup temporary result path
+            if result_path != d_path:
+                if os.path.exists(result_path):
+                    if os.path.isfile(result_path):
+                        os.unlink(result_path)
                     else:
-                        shutil.rmtree(custom_path)
-                if not os.path.exists(cached_path):
-                    continue
-                if os.path.isfile(cached_path):
-                    shutil.copy2(cached_path, custom_path)
-                else:
-                    shutil.copytree(cached_path, custom_path)
+                        shutil.rmtree(result_path)
+
+            # Cleanup output path
+            if output_path is not None and output_path_cleanup:
+                if os.path.exists(output_path):
+                    if os.path.isfile(output_path):
+                        os.unlink(output_path)
+                    else:
+                        shutil.rmtree(output_path)
+
+        else:
+            return False, [f"No results on expected path '{result_path}'!"]
 
     return True, None
