@@ -57,7 +57,17 @@ def load_data(filepath):
         filepath = Path(filepath)
     relative_path = filepath.relative_to(get_data_dir())
     id = str(relative_path).replace(SEP, "--")[:-3]
-    data["id"] = id
+    data['id'] = id
+    data['path'] = str(relative_path.parent)
+    data['title'] = relative_path.stem.replace('_', ' ')
+    dt = datetime.fromtimestamp(os.path.getmtime(str(filepath)))
+    data['date'] = dt.strftime(r"%m-%d-%y")
+    data['modified_at'] = dt.strftime(r"%m/%d/%y %H:%M")
+    if 'tags' not in data:
+        data['tags'] = []
+    if 'type' not in data:
+        data['type'] = 'note'
+
     return data
 
 
