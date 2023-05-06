@@ -3,6 +3,9 @@ import re
 import hashlib
 import random
 import datetime
+import json
+import filecmp
+import shutil
 
 
 PARAMS = {}
@@ -70,6 +73,98 @@ def temp_file_path(opts, extension):
         f"temp-{int(datetime.datetime.now().timestamp()*1000000)}-"
         f"{random.randint(0, 1000000)}{extension}"
         )
+
+
+def sync_files(src, dst, allow_delete=False):
+    if not os.path.exists(src):
+        if not allow_delete:
+            return
+        if os.path.exists(dst):
+            if os.path.isfile(dst):
+                os.unlink(dst)
+            else:
+                shutil.rmtree(dst)
+        return False
+
+    if os.path.isfile(src):
+        if not os.path.exists(dst) or not os.path.isfile(dst):
+            pass
+        else:
+            if filecmp.cmp(src, dst, shallow=False):
+                return True
+    else:
+        if not os.path.exists(dst) or not os.path.isdir(dst):
+            pass
+        else:
+            _, mismatch, errors = filecmp.cmpfiles(src, dst, shallow=False)
+            if len(mismatch) == 0 and len(errors) == 0:
+                return True
+
+    if os.path.exists(dst):
+        if os.path.isfile(dst):
+            os.unlink(dst)
+        else:
+            shutil.rmtree(dst)
+
+    os.makedirs(os.path.split(dst)[0], exist_ok=True)
+
+    if os.path.isfile(src):
+        shutil.copy2(src, dst)
+    else:
+        shutil.copytree(src, dst)
+
+    return True
+
+
+def get_cached_name(src, dformat, page, extras):
+    if page not in (None, ""):
+        page = "-" + page
+    extras_digest = ""
+    if extras is not None and len(extras) > 0:
+        extras_digest = "-" + hashlib.md5(json.dumps(extras, sort_keys=True).encode()).hexdigest()
+    result = f"{digest(file = src)}{page}{extras_digest}.{dformat}"
+    return result
+
+
+def update_from_cache(cached_name, dst, opts, custom_cache=None):
+    cache, cache_dir = get_cache(opts)
+    if not cache:
+        return False
+    cached_path = os.path.join(cache_dir, cached_name)
+    result = sync_files(cached_path, dst, allow_delete=True)
+    if custom_cache is not None:
+        custom_cache_path = cached_path+".custom"
+        if not result:
+            if os.path.exists(custom_cache_path):
+                shutil.rmtree(custom_cache_path)
+            for custom_name, custom_path in custom_cache().items():
+                if not os.path.exists(custom_path):
+                    continue
+                if os.path.isfile(custom_path):
+                    os.unlink(custom_path)
+                else:
+                    shutil.rmtree(custom_path)
+        else:
+            for custom_name, custom_path in custom_cache().items():
+                sync_files(os.path.join(custom_cache_path, custom_name), custom_path, allow_delete=True)
+    return result
+
+
+def update_cache(cached_name, path, opts, custom_cache=None):
+    cache, cache_dir = get_cache(opts)
+    if not cache:
+        return False
+    cached_path = os.path.join(cache_dir, cached_name)
+    result = sync_files(path, cached_path, allow_delete=True)
+    if custom_cache is not None:
+        custom_cache_path = cached_path+".custom"
+        if not result:
+            if os.path.exists(custom_cache_path):
+                shutil.rmtree(custom_cache_path)
+        else:
+            for custom_name, custom_path in custom_cache().items():
+                sync_files(custom_path, os.path.join(custom_cache_path, custom_name), allow_delete=True)
+    return result
 
 
 class handler_engine(object):
@@ -197,7 +292,7 @@ class ssr_handlers(object):
         if service not in self._handlers:
             raise ValueError(f"No service is registered with name '{service}'")
         return self._handlers[service].serviceUrl
-    
+
     def general_fields(self):
         return [k for k in self._supported_fields.keys() if k not in self._opts]
 
