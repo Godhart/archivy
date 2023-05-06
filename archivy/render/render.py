@@ -69,7 +69,7 @@ from copy import deepcopy
 
 import archivy.render.common as common
 from archivy.render.common import get_param, to_abs_path, default_handlers
-from archivy.render.svg_tools import resize as svg_resize
+from archivy.render.svg_tools import modify as svg_modify
 from archivy.render.svg_tools import convert_to as svg_convert
 from archivy.render.html_tools import get_body as html_get_body
 from archivy.data import sanitize_path
@@ -173,8 +173,8 @@ def to_diagram(
             # Conversion is supported only for pdf and png
             if format not in ("pdf", "svg"):
                 raise ValueError(f"Conversion from '{dformat}' to '{format}' is not supported!")
-        else:
-            raise ValueError("Only conversion 'svg' to 'pdf' or 'png' is supported")
+        elif format != dformat:
+            raise ValueError("Only conversion 'svg' to 'pdf' or 'png' is supported!")
     else:
         # If service not supports this format then try to get svg then convert
         if dformat == "":
@@ -196,8 +196,8 @@ def to_diagram(
             # If download format is specified explicitly
             # (everything is defined, only do checks)
             if format in ("pdf", "png"):
-                if dformat != "svg":
-                    raise ValueError("Only conversion 'svg' to 'pdf' or 'png' is supported")
+                if format != dformat and dformat != "svg":
+                    raise ValueError("Only conversion 'svg' to 'pdf' or 'png' is supported!")
                 if dformat not in formats:
                     raise ValueError(
                         f"Format '{format}' is not supported by '{service}'"
@@ -346,10 +346,10 @@ def to_diagram(
             f.write("\n".join(errors))
 
     if len(errors) == 0:
-        # Get SVG out of HTML using resizeSVG (it fits for current usecases)
+        # Get SVG out of HTML using modify_svg (it fits for current usecases)
         if dformat == "svg" and service == "splash":
             try:
-                svg_resize(d_path, d_path, "-", "-", background=background)    # width and height are set to '-' to avoid resize
+                svg_modify(d_path, d_path, "-", "-", background=background)    # width and height are set to '-' to avoid resize
             except Exception as e:
                 errors.append(f"Ripping SVG out of splash has been failed due to exception: {e}")
 
@@ -376,7 +376,7 @@ def to_diagram(
         if rawsvg and ref != "":
             div_ref = f'id="{ref}"'
 
-        if format in common.IMAGE_FORMATS:
+        if format in common.IMAGE_FORMATS and format != "pdf":
             image_style = ""
             if inversion != "":
                 image_style = f'style="{inversion}"'
@@ -386,7 +386,7 @@ def to_diagram(
                     try:
                         if os.path.exists(t_path+".err"):
                             os.unlink(t_path+".err")
-                        inline_svg = svg_resize(t_path, None, width, height, auto_fit_width, auto_fit_height, background)
+                        inline_svg = svg_modify(t_path, None, width, height, auto_fit_width, auto_fit_height, background)
                     except Exception as e:
                         errors.append(f"Placing SVG inline failed due to exception: {e}")
 
@@ -402,15 +402,16 @@ def to_diagram(
                         img_tag += f' id="{ref}"'
                     if caption != "":
                         img_tag += f' alt="{caption}"'
-                    if re.match(width, "^\d+[%]?$"):
+                    if width not in (None, ""):
                         img_tag += f' width="{width}"'
-                    if re.match(height, "^\d+[%]?$"):
+                    if height not in (None, ""):
                         img_tag += f' height="{height}"'
                     img_tag = f'<img {img_tag}>'
                     result.append(img_tag)
             else:
                 for err in errors:
                     result.append(f"<code>{err}</code>")
+            result.append("</div>")
         elif format == "html":
             if opts.get("inversion-all", False) is True:        # NOTE: Implicit option, defined and set only by specific renders
                 result.append(f'<div {div_ref} style="{inversion}">')
@@ -419,6 +420,29 @@ def to_diagram(
                 result.append(f'<div {div_ref}>')
                 html_content = html_get_body(t_path, inversion)
             result.append(html_content)
+            result.append("</div>")
+        elif format == "pdf":
+            result.append(f'<div {div_ref} style="{inversion}">')
+            pdf_tag = f'<embed src="{img_path}" '
+
+            if width in (None, ""):
+                width = opts.get("auto-fit-width", None)
+            if width in (None, ""):
+                width = "100%"
+
+            if height in (None, ""):
+                height = opts.get("auto-fit-height", None)
+            if height in (None, ""):
+                height = "800px"
+
+            if width not in (None, ""):
+                pdf_tag += f' width="{width}"'
+            if height not in (None, ""):
+                pdf_tag += f' height="{height}"'
+
+            pdf_tag += ' type="application/pdf">'
+            result.append(pdf_tag)
+            result.append("</div>")
         else:
             result.append(f'<div align="{align}" {div_ref}>')
             errors.append(f"Data format '{format}' is not supported yet!")
@@ -427,7 +451,7 @@ def to_diagram(
             else:
                 for err in errors:
                     result.append(f"<p>{err}</p>")
-        result.append("</div>")
+            result.append("</div>")
 
         # Add caption
         if caption != "":
@@ -606,7 +630,7 @@ def _read_content(content_source, content_path, content, service=None, engine=No
 
     if len(errors) > 0:
         return errors, None
-    
+
     # Dealias service
     if service in common.default_handlers.aliases():
         service = common.default_handlers.service_dealias(service)
@@ -688,7 +712,7 @@ def render(kind, objid, content, options):
 
         if len(errors) > 0:
             return "\n".join(errors)    # TODO: HTML escaping
-        
+
         for k, v in options.items():
             render_args["opts"][k] = v
 
