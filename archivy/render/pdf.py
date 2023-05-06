@@ -1,4 +1,4 @@
-from archivy.render.common import default_handlers, handler_info, handler_engine, get_param
+from archivy.render.common import default_handlers, handler_info, handler_engine, sync_files
 import archivy.render.common as common
 import os
 import re
@@ -17,47 +17,29 @@ def render_pdf(
 ):
     if src == "":
         raise ValueError("pdf supports input from files only!")
-    
-    width = get_param(opts, "width", None)
-    if width in (None, ""):
-        width = opts.get("auto-fit-width", None)
-    if width in (None, ""):
-        width = "100%"
-
-    height = get_param(opts, "height", None)
-    if height in (None, ""):
-        height = opts.get("auto-fit-height", None)
-    if height in (None, ""):
-        height = "800px"
-
-    pdf_path = re.sub(r"\.\w+$", ".pdf", d_path)
-    pdf_path = os.path.normpath(pdf_path)
-    images_path = os.path.normpath(common.IMG_ROOT_PATH)
-    pdf_rel_path = common.IMG_ROOT_PREFIX + "/" + pdf_path[len(images_path)+1:]
-
-    if os.path.exists(d_path):
-        os.unlink(d_path)
-    if os.path.exists(pdf_path):
-        os.unlink(pdf_path)
-    if not os.path.exists(src):
-        return False, [f"Source document '{src}' is not found!"]
-    shutil.copy2(src, pdf_path)
-
-    html = f"""
-<html>
-<body>
-<embed src="{pdf_rel_path}" width="{width}" height="{height}" type="application/pdf">
-</body>
-</html>
-"""
-    with open(d_path, "w", encoding='utf-8') as f:
-        f.write(html)
-
-    opts["_link_"] = pdf_rel_path
 
     result = True, None
 
-    return result
+    if os.path.isdir(src):
+        result[0] = False
+        result[1].append([f"src '{src}' should point to a file!"])
+
+    if not os.path.exists(src):
+        result[0] = False
+        result[1].append([f"Source document '{src}' is not found!"])
+
+    if not result[0]:
+        if os.path.exists(d_path):
+            if os.path.isfile(d_path):
+                os.unlink(d_path)
+            else:
+                shutil.rmtree(d_path)
+        return result
+
+    if sync_files(src, d_path, allow_delete=True):
+        return result
+    else:
+        return False, [f"Failed to sync '{src}' to '{d_path}'"]
 
 
 default_handlers.register_handler(
@@ -71,7 +53,7 @@ default_handlers.register_handler(
         engines     = {
             "pdf": handler_engine(
                 exts =      [".pdf"],
-                formats =   ["html"]
+                formats =   ["pdf"]
             ),
         },
         serviceUrl  = "local",
