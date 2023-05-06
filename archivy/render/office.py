@@ -50,19 +50,11 @@ def render_office(
         r_path = os.path.join(os.path.split(d_path)[0], r_path)
         return r_path
 
-    r_path = custom_result_lookup()
-
-    # Unlink existing Libre Office's output file
-    # TODO: won't there be conflicts with other threads?
-    if os.path.exists(r_path):
-        os.unlink(r_path)
-
-    result = render_local(data, src, dformat, d_path, serviceUrl, engine, page, force, opts, custom_result_lookup)
-
-    ## Rename Libre Office's output file
-    if r_path != d_path:
-        if os.path.exists(r_path):
-            os.unlink(r_path)
+    result = render_local(
+        data, src, dformat, d_path, serviceUrl, engine, page, force, opts,
+        output_path=custom_result_lookup(),
+        output_path_cleanup=True
+    )
 
     return result
 

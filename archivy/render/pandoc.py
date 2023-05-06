@@ -42,6 +42,8 @@ def render_pandoc_html(
 
     from_format = opts.get("from", None)
 
+    extras = {"service": "pandoc-html", "extension": opts.get("extension", None)}
+
     # If data is given - save it into cache dir and then use as source
     src_is_temporary = False
     if src == "":
@@ -96,7 +98,7 @@ def render_pandoc_html(
 
     result = render_local(
         data, src, dformat, d_path, serviceUrl, engine, page, force, opts,
-        post_process=post_process, custom_cache=custom_cache)
+        post_process=post_process, custom_cache=custom_cache, extras=extras)
 
     if src_is_temporary:
         os.unlink(src)

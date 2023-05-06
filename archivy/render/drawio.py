@@ -14,6 +14,8 @@ def render_drawio(
 ):
     if src == "":
         raise ValueError("Draw.io supports input from files only!")
+    
+    extras = {"service": "draw.io", }
 
     # Command line for converting image with drawio
     drawio_opts = ["-x", "-f", dformat, "-o", d_path, ]
@@ -21,10 +23,12 @@ def render_drawio(
     width = opts.get("width", None)
     if width not in (None, ""):
         drawio_opts += ["--width", width]
+        extras["width"] = width
 
     height = opts.get("height", None)
     if height not in (None, ""):
         drawio_opts += ["--height", height]
+        extras["height"] = height
 
     if page != "":
         drawio_opts += ["-p", f"{page}"]
@@ -41,14 +45,18 @@ def render_drawio(
     transp = opts.get("transparent", None)
     if transp is not None and transp.lower() in ("yes", "true"):
         drawio_opts += ["-t"]
+        extras["transparent"] = True
+    else:
+        extras["transparent"] = False
 
     layers = opts.get("layers", None)
     if layers not in (None, ""):
         drawio_opts += ["-l", layers]
+        extras["layers"] = layers
 
     serviceUrl = ["draw.io", *drawio_opts, src]
 
-    return render_local(data, src, dformat, d_path, serviceUrl, engine, page, force, opts)
+    return render_local(data, src, dformat, d_path, serviceUrl, engine, page, force, opts, extras=extras)
 
 
 default_handlers.register_handler(

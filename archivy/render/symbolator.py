@@ -1,7 +1,6 @@
 from archivy.render.local import render_local
-from archivy.render.common import default_handlers, handler_info, handler_engine, temp_file_path
+from archivy.render.common import default_handlers, handler_info, handler_engine, temp_file_path, PATH_SEP
 import os
-import shutil
 
 def render_symbolator(
     data,
@@ -23,6 +22,8 @@ def render_symbolator(
         with open(src, "w", encoding='utf-8') as f:
             f.write(data)
 
+    extras = {"service": "symbolator", }
+
     # Command line for generating image with symbolator
     sym_o = d_path+".tmp"
     symbolator_opts = ["-i", src, "-f", dformat, "-o", sym_o, ]
@@ -32,12 +33,21 @@ def render_symbolator(
     transp = opts.get("transparent", None)
     if transp is not None and transp.lower() in ("yes", "true"):
         symbolator_opts += ["-t"]   # TODO: transparency not works
+        extras['transparent'] = True
+    else:
+        extras['transparent'] = False
 
     if opts.get("no-type", False) is True:
         symbolator_opts += ["--no-type"]
+        extras['no-type'] = True
+    else:
+        extras['no-type'] = False
 
     if opts.get("title", False) is True:
         symbolator_opts += ["--title"]
+        extras['title'] = True
+    else:
+        extras['title'] = False
 
     serviceUrl = ["symbolator", *symbolator_opts, src]
 
@@ -56,14 +66,13 @@ def render_symbolator(
                     f.write(f"Failed to produce result!")
                 return None
 
-    if os.path.exists(sym_o):
-        # TODO: won't there be conflicts with other threads?
-        shutil.rmtree(sym_o)
-    os.makedirs(sym_o, exist_ok=True)
-
-    result = render_local(data, src, dformat, d_path, serviceUrl, engine, page, force, opts, custom_result_lookup)
-
-    shutil.rmtree(sym_o)
+    result = render_local(
+        data, src, dformat, d_path, serviceUrl, engine, page, force, opts,
+        output_path = sym_o + PATH_SEP,
+        output_path_cleanup= True,
+        custom_result_lookup = custom_result_lookup,
+        extras = extras
+    )
 
     if src_is_temporary:
         os.unlink(src)
