@@ -59,7 +59,9 @@ def load_data(filepath):
     id = str(relative_path).replace(SEP, "--")[:-3]
     data['id'] = id
     data['path'] = str(relative_path.parent)
-    data['title'] = relative_path.stem.replace('_', ' ')
+    title = relative_path.stem.replace('_', ' ')
+    title = title[:1].title() + title[1:]
+    data['title'] = title
     dt = datetime.fromtimestamp(os.path.getmtime(str(filepath)))
     data['date'] = dt.strftime(r"%m-%d-%y")
     data['modified_at'] = dt.strftime(r"%m/%d/%y %H:%M")
