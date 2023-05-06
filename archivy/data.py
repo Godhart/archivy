@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-import frontmatter
+import archivy.frontmatter_thing as frontmatter
 from flask import current_app
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
@@ -52,23 +52,9 @@ def get_by_id(dataobj_id):
 
 
 def load_data(filepath):
-    data = frontmatter.load(filepath)
     if not isinstance(filepath, Path):
         filepath = Path(filepath)
-    relative_path = filepath.relative_to(get_data_dir())
-    id = str(relative_path).replace(SEP, "--")[:-3]
-    data['id'] = id
-    data['path'] = str(relative_path.parent)
-    title = relative_path.stem.replace('_', ' ')
-    title = title[:1].title() + title[1:]
-    data['title'] = title
-    dt = datetime.fromtimestamp(os.path.getmtime(str(filepath)))
-    data['date'] = dt.strftime(r"%m-%d-%y")
-    data['modified_at'] = dt.strftime(r"%m/%d/%y %H:%M")
-    if 'tags' not in data:
-        data['tags'] = []
-    if 'type' not in data:
-        data['type'] = 'note'
+    data = frontmatter.load(filepath)
 
     return data
 
@@ -270,9 +256,10 @@ def update_item_md(dataobj_id, new_content):
     dataobj = load_data(filename)
     dataobj["modified_at"] = datetime.now().strftime("%x %H:%M")
     dataobj.content = new_content
-    md = frontmatter.dumps(dataobj)
+    md = frontmatter.dumps(dataobj, raw=True)
+    wd = frontmatter.dumps(dataobj)
     with open(filename, "w", encoding="utf-8") as f:
-        f.write(md)
+        f.write(wd)
 
     converted_dataobj = DataObj.from_md(md)
     converted_dataobj.fullpath = str(
@@ -302,11 +289,24 @@ def update_item_frontmatter(dataobj_id, new_frontmatter):
     filename = get_by_id(dataobj_id)
     dataobj = load_data(filename)
     for key in list(new_frontmatter):
-        dataobj[key] = new_frontmatter[key]
+        if key != 'title' or dataobj.get('type', 'note') != 'note':
+            dataobj[key] = new_frontmatter[key]
+            continue
+        if key == 'title':
+            # Reset title to default
+            if new_frontmatter[key] is None or new_frontmatter[key].strip() == '' or new_frontmatter[key] == dataobj['_fallback_title_']:
+                dataobj[key] = dataobj['_fallback_title_']
+                dataobj['_auto_title_'] = True
+            else:
+                dataobj[key] = new_frontmatter[key]
+                dataobj['_auto_title_'] = False
+            continue
+
     dataobj["modified_at"] = datetime.now().strftime("%x %H:%M")
-    md = frontmatter.dumps(dataobj)
+    md = frontmatter.dumps(dataobj, raw=True)
+    wd = frontmatter.dumps(dataobj)
     with open(filename, "w", encoding="utf-8") as f:
-        f.write(md)
+        f.write(wd)
 
     converted_dataobj = DataObj.from_md(md)
     converted_dataobj.fullpath = str(

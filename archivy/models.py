@@ -1,11 +1,13 @@
+import os
 from datetime import datetime
 from pkg_resources import require
 from typing import List, Optional
 from urllib.parse import urljoin
 from io import BytesIO
 import fnmatch
+from hashlib import md5
 
-import frontmatter
+import archivy.frontmatter_thing as frontmatter
 import requests
 import validators
 from attr import attrs, attrib
@@ -76,7 +78,7 @@ class DataObj:
 
     __searchable__ = ["title", "content", "tags"]
 
-    id: Optional[int] = attrib(validator=optional(instance_of(int)), default=None)
+    id: Optional[str] = attrib(validator=optional(instance_of(str)), default=None)
     type: str = attrib(validator=instance_of(str))
     title: str = attrib(validator=instance_of(str), default="")
     content: str = attrib(validator=instance_of(str), default="")
@@ -203,8 +205,12 @@ class DataObj:
         if self.validate():
             for tag in self.tags:
                 add_tag_to_index(tag)
-            helpers.set_max_id(helpers.get_max_id() + 1)
-            self.id = helpers.get_max_id()
+            if self.type == 'note':
+                self.id = os.path.join(self.path, str(self.title)).replace(' ', '_').replace('/', "--").replace('\\', "--")
+                file_name = f"{self.title}".replace(' ', '_')
+            else:
+                self.id = md5(str(self.title).encode()).hexdigest()
+                file_name = f"{self.id}-{self.title}"
             self.date = datetime.now()
 
             hooks = current_app.config["HOOKS"]
@@ -219,6 +225,9 @@ class DataObj:
                 "id": self.id,
                 "path": self.path,
             }
+            if self.type == "note":
+                data["_auto_title_"] = True
+                data["_fallback_title_"] = data["title"]
             if self.type == "bookmark" or self.type == "pocket_bookmark":
                 data["url"] = self.url
 
@@ -228,7 +237,7 @@ class DataObj:
             self.fullpath = str(
                 create(
                     frontmatter.dumps(dataobj),
-                    f"{self.id}-{dataobj['title']}",
+                    file_name,
                     path=self.path,
                 )
             )
