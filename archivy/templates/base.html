@@ -4,9 +4,11 @@
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
-      {% if config.THEME_CONF.get('use_theme_dark', False) %}
-        <link rel="stylesheet" href="{{ url_for('static', filename='main_dark.css') }}">
-      {% endif %}
+        <link id="style_dark_main" rel="stylesheet" href="{{ url_for('static', filename='main_dark.css') }}"
+        {% if not config.THEME_CONF.get('use_theme_dark', False) %}
+        disabled=true
+        {% endif %}
+        >
       {% if config.THEME_CONF.get('use_custom_css', False) %}
         <link rel="stylesheet" href="/static/custom.css">
       {% endif %}
@@ -14,6 +16,41 @@
     <link rel="icon" href="{{ url_for('static', filename='archivy.svg')}}" type="image/svg+xml">
     </head>
     <body>
+
+<script type="text/javascript">
+  function toggle_lights() {
+    let ed1 = document.getElementById("style_dark_main");
+    let ed2 = document.getElementById("style_dark_higlightjs");
+    let el2 = document.getElementById("style_light_higlightjs");
+    let ed3 = document.getElementById("style_dark_editor");
+    let toggler = document.getElementById("light_toggle");
+    if (ed1.disabled) {
+      ed1.disabled = false;
+      toggler.innerHTML = "Light";
+      if (ed2 !== undefined) {
+        ed2.disabled = false;
+      }
+      if (ed3 !== undefined) {
+        ed3.disabled = false;
+      }
+      if (el2 !== undefined) {
+        el2.disabled = true;
+      }
+    } else {
+      ed1.disabled = true;
+      toggler.innerHTML = "Dark";
+      if (ed2 !== undefined) {
+        ed2.disabled = true;
+      }
+      if (ed3 !== undefined) {
+        ed3.disabled = true;
+      }
+      if (el2 !== undefined) {
+        el2.disabled = false;
+      }
+    }
+  }
+</script>
 
         {% set path = [] %}
         {% set i = namespace(value=0) %}
@@ -74,6 +111,16 @@
                 </a>
                 <a class="Header-link Header-item" href="/bookmarklet">
                     <h3>Bookmarklet</h3>
+                </a>
+                <a href="javascript:toggle_lights()" class="Header-link Header-item">
+                    <h3 id="light_toggle">
+                        {% if config.THEME_CONF.get('use_theme_dark', False) %}
+                        Light
+                        {% endif %}
+                        {% if not config.THEME_CONF.get('use_theme_dark', False) %}
+                        Dark
+                        {% endif %}
+                    </h3>
                 </a>
                 <a href="/user/edit" class="Header-item">
                     <svg class="octicon" color="white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="30" height="30"><path fill-rule="evenodd" d="M10.5 5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm.061 3.073a4 4 0 10-5.123 0 6.004 6.004 0 00-3.431 5.142.75.75 0 001.498.07 4.5 4.5 0 018.99 0 .75.75 0 101.498-.07 6.005 6.005 0 00-3.432-5.142z"></path></svg>

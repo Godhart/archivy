@@ -263,23 +263,17 @@ def to_diagram(
             auto_fit_height = get_param(opts, "RENDER_AUTO_FIT_HEIGHT", "800px")
 
     inversion   = opts.get("inversion", "auto").lower()
-    dark_theme = opts.get("dark-theme", False)
+
     if inversion not in ("auto", "opposite", "yes", "true", "no", "false"):
         raise ValueError(f"'inversion' property should be on of ('auto', 'none', 'yes', 'true', 'no', 'false'), got '{inversion}'!")
     if inversion in ('yes', 'true'):
-        inversion = True
+        inversion = "image-inverted"
     elif inversion in ('no', 'false'):
-        inversion = False
+        inversion = "image-normal"
     elif inversion == "auto":
-        inversion = dark_theme
+        inversion = "image-auto"
     else:
-        inversion = not dark_theme
-
-    if not inversion:
-        inversion = ""
-    else:
-        inversion = 'filter: brightness(0.85) invert() hue-rotate(180deg);'
-
+        inversion = "image-opposite"
 
     # Determine download and target path
     g_path = get_param(opts, "RENDER_GENERATED_PATH", ".dia-generated").replace(".", "_")
@@ -379,7 +373,7 @@ def to_diagram(
         if format in common.IMAGE_FORMATS and format != "pdf":
             image_style = ""
             if inversion != "":
-                image_style = f'style="{inversion}"'
+                image_style = f'class="{inversion}"'
             result.append(f'<div align="{align}" {div_ref} {image_style}>')
             if len(errors) == 0:
                 if rawsvg:
@@ -414,15 +408,15 @@ def to_diagram(
             result.append("</div>")
         elif format == "html":
             if opts.get("inversion-all", False) is True:        # NOTE: Implicit option, defined and set only by specific renders
-                result.append(f'<div {div_ref} style="{inversion}">')
-                html_content = html_get_body(t_path, "no")
+                result.append(f'<div {div_ref} class="{inversion}">')
+                html_content = html_get_body(t_path, "")
             else:
                 result.append(f'<div {div_ref}>')
                 html_content = html_get_body(t_path, inversion)
             result.append(html_content)
             result.append("</div>")
         elif format == "pdf":
-            result.append(f'<div {div_ref} style="{inversion}">')
+            result.append(f'<div {div_ref} class="{inversion}">')
             pdf_tag = f'<embed src="{img_path}" '
 
             if width in (None, ""):

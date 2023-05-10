@@ -6,11 +6,16 @@
 {# https://github.com/Yukaii/github-highlightjs-themes #}
 {# https://draculatheme.com/highlightjs #}
 
-{% if config.THEME_CONF.get('use_theme_dark', False) %}
-<link rel="stylesheet" href="/static/highlightjs/themes/dracula/dracula.css">
-{% else %}
-<link rel="stylesheet" href="/static/highlightjs/themes/yukaii/github-light-default.css">
+<link id="style_dark_higlightjs" rel="stylesheet" href="/static/highlightjs/themes/dracula/dracula.css"
+{% if not config.THEME_CONF.get('use_theme_dark', False) %}
+disabled=true
 {% endif %}
+>
+<link id="style_light_higlightjs" rel="stylesheet" href="/static/highlightjs/themes/yukaii/github-light-default.css"
+{% if config.THEME_CONF.get('use_theme_dark', False) %}
+disabled=true
+{% endif %}
+>
 
 <script src="/static/math.js">
 </script>

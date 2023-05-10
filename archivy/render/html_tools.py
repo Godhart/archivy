@@ -24,7 +24,7 @@ def get_body(path, update_image_style):
             if len(style) > 0 and style[-1] != ";":
                 style += ";"
             style += update_image_style
-            image.set("style", style)
+            image.set("class", style)
 
     for node in page.find("body"):
         result.append(etree.tostring(node, pretty_print=True, method="html").decode(encoding='utf-8'))
@@ -33,5 +33,5 @@ def get_body(path, update_image_style):
 
 if __name__ == "__main__":
     if sys.argv[1] == "test1":
-        a = get_body(sys.argv[2], "filter: invert();")
+        a = get_body(sys.argv[2], "filter: invert();") # TODO: now it should be a style
     pass
