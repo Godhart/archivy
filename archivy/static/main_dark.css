@@ -140,3 +140,11 @@ input:focus:not([type="submit"]), input:hover:not([type="submit"]), select:focus
     border: 1px var(--light-grey) solid;
     background-color: var(--light-grey);
 }
+
+.image-auto {
+    filter: brightness(0.85) invert() hue-rotate(180deg);
+}
+
+.image-opposite {
+    filter: unset();
+}

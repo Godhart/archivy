@@ -573,3 +573,19 @@ hr {
     background-color: #e1e4e8;
     border: 0;
 }
+
+.image-auto {
+    filter: unset();
+}
+
+.image-opposite {
+    filter: brightness(0.85) invert() hue-rotate(180deg);
+}
+
+.image-normal {
+    filter: unset();
+}
+
+.image-inverted {
+    filter: brightness(0.85) invert() hue-rotate(180deg);
+}
