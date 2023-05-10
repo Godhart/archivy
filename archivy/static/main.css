@@ -27,6 +27,14 @@ a:hover {
     text-decoration: underline;
 }
 
+.header-anchor {
+    color: #b6b6b6;
+}
+
+.header-anchor:hover {
+    color: #7848bb;
+}
+
 mark {
     background-color: #f6efa6;
 }

@@ -24,6 +24,14 @@ a {
     color: var(--hyperlink-color);
 }
 
+.header-anchor {
+    color: var(--mid-grey);
+}
+
+.header-anchor:hover {
+    color: var(--hyperlink-color);
+}
+
 mark {
     background-color: var(--light-green);
 }

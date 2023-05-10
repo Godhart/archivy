@@ -76,6 +76,22 @@ blockquote
     vertical-align: middle;
     visibility: hidden;
 }
+
+.markdown-body .header-anchor {
+    visibility: hidden;
+}
+
+h1:hover > .header-anchor,
+h2:hover > .header-anchor,
+h3:hover > .header-anchor,
+h4:hover > .header-anchor,
+h5:hover > .header-anchor,
+h6:hover > .header-anchor,
+.ref-section > .header-anchor
+{
+    visibility: visible;
+}
+
 .markdown-body h1:hover .anchor,
 .markdown-body h2:hover .anchor,
 .markdown-body h3:hover .anchor,
