@@ -575,7 +575,7 @@ hr {
 }
 
 .image-auto {
-    filter: unset();
+    filter: unset;
 }
 
 .image-opposite {
@@ -583,7 +583,7 @@ hr {
 }
 
 .image-normal {
-    filter: unset();
+    filter: unset;
 }
 
 .image-inverted {

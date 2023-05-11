@@ -146,5 +146,5 @@ input:focus:not([type="submit"]), input:hover:not([type="submit"]), select:focus
 }
 
 .image-opposite {
-    filter: unset();
+    filter: unset;
 }
