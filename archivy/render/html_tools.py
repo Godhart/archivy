@@ -20,9 +20,9 @@ def get_body(path, update_image_style):
     result = []
     if update_image_style is not None and update_image_style != "":
         for image in _h_find_all(page.find("body"), "img"):
-            style = image.get("style", "")
-            if len(style) > 0 and style[-1] != ";":
-                style += ";"
+            style = image.get("class", "")
+            if len(style) > 0:
+                style += " "
             style += update_image_style
             image.set("class", style)
 
