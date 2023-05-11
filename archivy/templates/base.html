@@ -12,45 +12,73 @@
       {% if config.THEME_CONF.get('use_custom_css', False) %}
         <link rel="stylesheet" href="/static/custom.css">
       {% endif %}
-
-    <link rel="icon" href="{{ url_for('static', filename='archivy.svg')}}" type="image/svg+xml">
-    </head>
-    <body>
-
 <script type="text/javascript">
-  function toggle_lights() {
+  function toggle_lights(value) {
+    // if value is true - light theme, if false - dark theme
     let ed1 = document.getElementById("style_dark_main");
     let ed2 = document.getElementById("style_dark_higlightjs");
     let el2 = document.getElementById("style_light_higlightjs");
     let ed3 = document.getElementById("style_dark_editor");
     let toggler = document.getElementById("light_toggle");
-    if (ed1.disabled) {
+    const default_value = 
+      {% if config.THEME_CONF.get('use_theme_dark', False) %}
+        false
+      {% else %}
+        true
+      {% endif %}
+      ;
+
+    if (value === undefined) {
+        value = !ed1.disabled;
+        if (value !== default_value) {
+          localStorage.setItem("dark_theme", !value);
+        } else {
+          localStorage.removeItem("dark_theme");
+        }
+    }
+    if (!value) {
       ed1.disabled = false;
-      toggler.innerHTML = "Light";
-      if (ed2 !== undefined) {
+      if (toggler) {
+        toggler.innerHTML = "Dark";
+      }
+      if (ed2) {
         ed2.disabled = false;
       }
-      if (ed3 !== undefined) {
+      if (ed3) {
         ed3.disabled = false;
       }
-      if (el2 !== undefined) {
+      if (el2) {
         el2.disabled = true;
       }
     } else {
       ed1.disabled = true;
-      toggler.innerHTML = "Dark";
-      if (ed2 !== undefined) {
+      if (toggler) {
+        toggler.innerHTML = "Light";
+      }
+      if (ed2) {
         ed2.disabled = true;
       }
-      if (ed3 !== undefined) {
+      if (ed3) {
         ed3.disabled = true;
       }
-      if (el2 !== undefined) {
+      if (el2) {
         el2.disabled = false;
       }
     }
   }
+
+  {
+    let custom_dark = localStorage.getItem("dark_theme");
+    if (custom_dark !== null) {
+      custom_dark = custom_dark == "true";
+      toggle_lights(!custom_dark);
+    }
+  }
 </script>
+
+    <link rel="icon" href="{{ url_for('static', filename='archivy.svg')}}" type="image/svg+xml">
+    </head>
+    <body>
 
         {% set path = [] %}
         {% set i = namespace(value=0) %}
@@ -115,10 +143,10 @@
                 <a href="javascript:toggle_lights()" class="Header-link Header-item">
                     <h3 id="light_toggle">
                         {% if config.THEME_CONF.get('use_theme_dark', False) %}
-                        Light
+                        Dark
                         {% endif %}
                         {% if not config.THEME_CONF.get('use_theme_dark', False) %}
-                        Dark
+                        Light
                         {% endif %}
                     </h3>
                 </a>

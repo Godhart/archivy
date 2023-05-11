@@ -33,12 +33,40 @@ disabled=true
 <script src="/static/highlightjs/languages/scala.min.js"></script>
 <script src="/static/parser.js"></script>
 <script src="/static/render.js"></script>
-{% if config.THEME_CONF.get('use_theme_dark', False) %}
-<script src="/static/wavedrom/skins/dark.min.js"></script>
-{% else %}
-<script src="/static/wavedrom/skins/default.min.js"></script>
-{% endif %}
-<script src="/static/wavedrom/wavedrom.min.js"></script>
+<script type="text/javascript">
+  function load_wavedrom(dark) {
+    let head = document.getElementsByTagName('head')[0];
+    let js = document.createElement("script");
+    js.type = "text/javascript";
+    if (dark === true)
+    {
+        js.src = "/static/wavedrom/skins/dark.min.js";
+    }
+    else
+    {
+        js.src = "/static/wavedrom/skins/default.min.js";
+    }
+    head.appendChild(js);
+    js = document.createElement("script");
+    js.src = "/static/wavedrom/wavedrom.min.js";
+    head.appendChild(js);
+  }
+
+  {
+    let custom_dark = localStorage.getItem("dark_theme");
+    if (custom_dark !== null) {
+      custom_dark = custom_dark == "true";
+      toggle_lights(!custom_dark);
+    } else {
+    {% if config.THEME_CONF.get('use_theme_dark', False) %}
+      custom_dark = true;
+    {% else %}
+      custom_dark = false;
+    {% endif %}
+    }
+    load_wavedrom(custom_dark);
+  }
+</script>
 <!--
 <script src="/static/wavedrom/skins/lowkey.min.js"></script>
 <script src="/static/wavedrom/skins/narrow.min.js"></script>
