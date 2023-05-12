@@ -174,9 +174,7 @@ def show_tag(tag_name):
     )
 
 
-@app.route("/dataobj/<dataobj_id>")
-def show_dataobj(dataobj_id):
-    dataobj = data.get_item(dataobj_id)
+def _show_dataobj(dataobj, dataobj_id):
     get_title_id_pairs = lambda x: (x["title"], x["id"])
     titles = list(
         map(get_title_id_pairs, data.get_items(structured=False, load_content=False))
@@ -237,6 +235,45 @@ def show_dataobj(dataobj_id):
         titles=titles,
         js_ext=js_ext,
         icons=app.config["EDITOR_CONF"]["toolbar_icons"],
+    )
+
+
+@app.route("/dataobj/<dataobj_id>")
+def show_dataobj(dataobj_id):
+    dataobj = data.get_item(dataobj_id)
+    return _show_dataobj(dataobj, dataobj_id)
+
+
+@app.route("/dataobj/lookup/<key>")
+def lookup_dataobj(key):
+    lookup_result = data.lookup_items(key)
+
+    if len(lookup_result) == 1:
+        return redirect(f"/dataobj/{lookup_result[0]['id']}")
+
+    if len(lookup_result) == 0:
+        flash("Data could not be found!", "error")
+        return redirect("/")
+
+    return redirect(f"/dataobj/select/{key}")
+
+
+@app.route("/dataobj/select/<key>")
+def select_dataobj(key):
+    lookup_result = data.lookup_items(key)
+
+    if len(lookup_result) == 0:
+        flash("Data could not be found!", "error")
+        return redirect("/")
+
+    items = []
+    for item in sorted(lookup_result, key=lambda x: x['path']):
+        items.append({'id': item['id'], 'path': item['path']})
+
+    return render_template(
+        "dataobjs/select.html",
+        title=f"Select page for '{key}'",
+        items=items,
     )
 
 
