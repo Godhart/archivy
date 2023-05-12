@@ -174,6 +174,26 @@ def get_item(dataobj_id):
     return None
 
 
+def lookup_items(key):
+    """Returns list of IDs with post objects, matching key"""
+    key = key.replace("--", SEP)
+    glob_results = list(get_data_dir().rglob(f"{key}.md"))
+    if not glob_results:
+        return []
+
+    results = []
+    for r in glob_results:
+        r_relative = r.relative_to(get_data_dir())
+        r_str = str(r_relative.parent) + "/" + r.stem
+        if r_str[:2] == "./":
+            r_str = r_str[2:]
+        results.append({
+            'id': r_str.replace('/', '--'),
+            'path': r_str,
+        })
+    return results
+
+
 def move_item(dataobj_id, new_path):
     """Move dataobj of given id to new_path"""
     file = get_by_id(dataobj_id)
