@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{{ title }} ({{ items | length }})</h2>
+<ul>
+  {% for res in items %}
+    <li><a href="/dataobj/{{ res['id'] }}">{{ res['path'] }}</li></a>
+  {% endfor %}
+</ul>
+
+{% endblock %}
