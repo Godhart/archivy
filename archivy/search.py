@@ -150,7 +150,7 @@ def search_frontmatter_tags(tag=None):
 
     if not which("rg"):
         return []
-    META_PATTERN = r"(^|\n)tags:(\n- [_a-zA-ZÀ-ÖØ-öø-ÿ0-9]+)+"
+    META_PATTERN = r"(^|\n)tags:(\n- [_a-zA-ZÀ-ÖØ-öø-ÿА-Яа-я0-9]+)+"
     hits = []
     rg_cmd = [
         "rg",
@@ -184,7 +184,7 @@ def query_ripgrep_tags():
     Mandatory reference: https://xkcd.com/1171/
     """
 
-    EMB_PATTERN = r"(^|\n| )#([-_a-zA-ZÀ-ÖØ-öø-ÿ0-9]+)#"
+    EMB_PATTERN = r"(^|\n| )#([-_a-zA-ZÀ-ÖØ-öø-ÿА-Яа-я0-9]+)#"
     from archivy.data import get_data_dir
 
     if not which("rg"):
