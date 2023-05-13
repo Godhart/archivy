@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Select tags ({{ tags | length }})</h2>
+
+<ul class="post-tags all-tags">
+{% for tag in tags %}
+  <a href="/tags{{ tag['href'] }}"><span class="post-tag">#{{ tag['tag'] }} ({{ tag['count'] }})</span></a>
+{% endfor %}
+</ul>
+
+<h2>Selected tags ({{ selected_tags | length }})</h2>
+
+<ul class="post-tags all-tags">
+{% for tag in selected_tags %}
+  <a href="/tags{{ tag['href'] }}"><span class="post-tag">#{{ tag['tag'] }}</span></a>
+{% endfor %}
+</ul>
+
+<h2>Pages ({{ items | length }})</h2>
+<ul>
+  {% for res in items %}
+    <li><a href="/dataobj/{{ res['id'] }}">{{ res['path'] }}</li></a>
+  {% endfor %}
+</ul>
+
+{% endblock %}
