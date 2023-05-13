@@ -253,6 +253,10 @@ def _show_dataobj(dataobj, dataobj_id):
     for match in re.finditer(PATTERN, dataobj.content):
         embedded_tags.add(match.group(0).replace("#", "").lstrip())
 
+    view_only = os.environ.get("ARCHIVY_VIEW_ONLY", "True").lower() != "false"
+    if not view_only:
+        view_only = dataobj.metadata.get('readonly', None) in (True, "yes", "true")
+
     return render_template(
         "dataobjs/show.html",
         title=dataobj["title"],
@@ -260,7 +264,7 @@ def _show_dataobj(dataobj, dataobj_id):
         backlinks=backlinks,
         current_path=dataobj["dir"],
         form=forms.DeleteDataForm(),
-        view_only=os.environ.get("ARCHIVY_VIEW_ONLY", "True").lower() != "false",
+        view_only=view_only,
         search_enabled=app.config["SEARCH_CONF"]["enabled"],
         post_title_form=post_title_form,
         move_form=move_form,
