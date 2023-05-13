@@ -206,6 +206,70 @@ def query_ripgrep_tags():
     return hits
 
 
+def query_ripgrep_tags_selection(tags):
+    """
+    Uses ripgrep to search for tags combinations.
+    Returns:
+    - list of object ids, with mentioned tags
+    - list with dict items, containing nested tags names and occurrences count
+    """
+
+    EMB_PATTERN = r"(^|\n| )#([-_a-zA-ZÀ-ÖØ-öø-ÿА-Яа-я0-9]+)#"
+    from archivy.data import get_data_dir
+
+    if not which("rg"):
+        return [], []
+    
+    # embedded tags
+    # io: case insensitive
+    rg_cmd = ["rg", "-Uio", RG_FILETYPE, RG_REGEX_ARG, EMB_PATTERN, str(get_data_dir())]
+    rg = run(rg_cmd, stdout=PIPE, stderr=PIPE, timeout=60)
+
+    obj_tags = {}
+    matching = {}
+
+    for line in rg.stdout.splitlines():
+        path = Path(line.decode()).relative_to(get_data_dir())
+        path, tag = str(path).split(":")
+        path = path[:-len(Path(path).suffix)]
+        tag = tag.replace("#", "").lstrip()
+        if path[:2] in ("./", ".\\"):
+            path = path[2:]
+        obj_id = path.replace('/', '--').replace('\\', '--')
+        if obj_id not in obj_tags:
+            obj_tags[obj_id] = []
+        obj_tags[obj_id].append(tag)
+
+    for item in search_frontmatter_tags():
+        obj_id = item['id']
+        if obj_id not in obj_tags:
+            obj_tags[obj_id] = []
+        obj_tags[obj_id] = set(obj_tags[obj_id] + item['tags'])
+
+    if tags is not None and len(tags) > 0:
+        for obj_id, lookup in obj_tags.items():
+            if all(tag in lookup for tag in tags):
+                matching[obj_id] = lookup
+    else:
+        matching = obj_tags
+
+    nested_tags = {}
+    for lookup in matching.values():
+        for tag in lookup:
+            if tag in tags:
+                continue
+            if tag not in nested_tags:
+                nested_tags[tag] = 1
+            else:
+                nested_tags[tag] += 1
+
+    result_tags = sorted([{'tag': k, 'count': v} for k,v in nested_tags.items()], key = lambda x: x['tag'])
+    if tags is not None and len(tags) > 0:
+        return sorted(matching.keys()), result_tags
+    else:
+        return [], result_tags
+
+
 def search(query, strict=False):
     """
     Wrapper to search methods for different engines.
