@@ -8,7 +8,7 @@ from archivy.data import get_items
 
 
 def is_tag_format(tag_name):
-    return re.match("^[a-zA-Z0-9_-]+$", tag_name)
+    return re.match("^[a-zA-ZÀ-ÖØ-öø-ÿА-Яа-я0-9_-]+$", tag_name)
 
 
 def get_all_tags(force=False):
