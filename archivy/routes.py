@@ -22,8 +22,10 @@ from archivy.models import DataObj, User
 from archivy import data, app, forms, csrf
 from archivy.helpers import get_db, write_config, is_safe_redirect_url
 from archivy.tags import get_all_tags
-from archivy.search import search, search_frontmatter_tags
+from archivy.search import search, search_frontmatter_tags, query_ripgrep_tags_selection
 from archivy.config import Config
+
+from urllib.parse import urlencode as ue
 
 import re
 import os
@@ -140,13 +142,43 @@ def new_note():
     return render_template("/dataobjs/new.html", title="New Note", form=form)
 
 
-@app.route("/tags")
+@app.route("/tags-all")
 def show_all_tags():
     if not app.config["SEARCH_CONF"]["engine"] == "ripgrep" and not which("rg"):
         flash("Ripgrep must be installed to view pages about embedded tags.", "error")
         return redirect("/")
     tags = sorted(get_all_tags(force=True))
     return render_template("tags/all.html", title="All Tags", tags=tags)
+
+
+@app.route("/tags")
+def select_tags():
+    if not app.config["SEARCH_CONF"]["engine"] == "ripgrep" and not which("rg"):
+        flash("Ripgrep must be installed to view pages about embedded tags.", "error")
+        return redirect("/")
+    selected_tags = request.args.to_dict(flat=False).get('tag', [])
+
+    obj_ids, tags = query_ripgrep_tags_selection(selected_tags)
+
+    items = []
+    for obj_id in obj_ids:
+        items.append({'id': obj_id, 'path': obj_id.replace('--', '/')})
+
+    selected_tags_href = []
+    for tag in selected_tags:
+        if len(selected_tags) > 1:
+            href = "?" + "&".join([ue({'tag':t}) for t in selected_tags if t != tag])
+        else:
+            href = ""
+        selected_tags_href.append({'tag': tag, 'href': href})
+
+    href = "?" + "&".join([ue({'tag':t}) for t in selected_tags])
+    for tag in tags:
+        tag['href'] = href + ('','&')[len(href)>1] + ue({'tag':tag['tag']})
+
+    return render_template("tags/select.html", title="Select Tags", tags=tags, selected_tags=selected_tags_href, items=items)
+
+    # TODO: option to select by author
 
 
 @app.route("/tags/<tag_name>")
