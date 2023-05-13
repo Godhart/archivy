@@ -96,9 +96,18 @@ input:focus:not([type="submit"]), input:hover:not([type="submit"]), select:focus
     color: var(--mid-green);
 }
 
+.folder-tags span {
+    color: var(--mid-dark-grey);
+    background: var(--light-green);
+}
+
 .post-tags span {
     color: var(--mid-dark-grey);
     background: var(--light-green);
+}
+
+.post-tags-lite span {
+    color: var(--mid-dark-grey);
 }
 
 /*Partly inspired by Primer -> https://github.com/primer/css*/

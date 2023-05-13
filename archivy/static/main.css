@@ -322,6 +322,10 @@ form {
     display: inline-block;
 }
 
+.post-tags-lite {
+    display: inline-block;
+}
+
 .post-tags span {
     background: var(--light-yellow);
     padding: 4px 7px;
@@ -329,6 +333,26 @@ form {
     display: inline-block;
 }
 
+.post-tags-lite span {
+    padding: 4px 7px;
+    margin-right: 6px;
+    display: inline-block;
+}
+
+.post-tag-inactive {
+    background: var(--light-yellow);
+}
+
+.post-tag-active {
+    background: #bfffaf;
+}
+
+.post-tag-active:hover {
+    background: #f6b9a6;
+    text-decoration-line: line-through;
+    text-decoration-color: #c0392b;
+    text-decoration-thickness: 2px;
+}
 
 .folder-tags {
     margin-top: 10px;
@@ -557,6 +581,14 @@ form {
     border: none !important;
 }
 .all-tags .post-tag {
+    margin: 5px;
+}
+
+.all-tags .post-tag-active {
+    margin: 5px;
+}
+
+.all-tags .post-tag-inactive {
     margin: 5px;
 }
 
