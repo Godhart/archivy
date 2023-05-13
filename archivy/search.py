@@ -170,6 +170,7 @@ def search_frontmatter_tags(tag=None):
             continue
         if parsed[1] == "begin":
             hits.append(parsed[0])  # append current hit data
+            continue
         if parsed[1] == "match":
             sanitized = parsed[0].replace("- ", "").split("\n")[2:]
             hits[-1]["tags"] = hits[-1].get("tags", []) + sanitized  # get tags
