@@ -183,6 +183,8 @@ def select_tags():
 
 @app.route("/tags/<tag_name>")
 def show_tag(tag_name):
+    return redirect("/tags?"+ue({'tag': tag_name}))
+
     if not app.config["SEARCH_CONF"]["enabled"] and not which("rg"):
         flash(
             "Search (for example ripgrep) must be installed to view pages about embedded tags.",
