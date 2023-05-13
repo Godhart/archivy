@@ -127,7 +127,11 @@
                 </a>
                 <p>&nbsp; v{{ version }}</p>
             </div>
-
+            {% if current_user.is_authenticated and not view_only %}
+                <div id="search-entry-placeholder">{% block search_entry %}{% endblock %}</div>
+                <p>&nbsp;</p>
+           {% endif %}
+ 
             {% if current_user.is_authenticated and not view_only %}
     {% if config["RG_INSTALLED"] %}
         <a href="/tags" class="Header-link Header-item">
