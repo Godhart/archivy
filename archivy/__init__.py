@@ -14,6 +14,8 @@ from archivy.models import User
 from archivy.config import Config
 from archivy.helpers import load_config, get_elastic_client
 
+import os
+
 app = Flask(__name__)
 app.logger.setLevel(logging.INFO)
 config = Config()
@@ -29,6 +31,8 @@ app.config.from_object(config)
 
 with app.app_context():
     app.config["RG_INSTALLED"] = which("rg") != None
+    for opt in ("SHOW_PLUGINS", "SHOW_BOOKMARKLET", "SHOW_SETTINGS", "SHOW_USEREDIT"):
+        app.config[opt] = os.environ.get("ARCHIVY_"+opt, "True").lower in ("true", "yes")
     app.config["HOOKS"] = helpers.load_hooks()
     app.config["SCRAPING_PATTERNS"] = helpers.load_scraper()
 if app.config["SEARCH_CONF"]["enabled"]:
