@@ -47,18 +47,10 @@
   {% endif %}
   <div class="post-header">
     <!-- Form for editing the frontmatter -->
-    {% if not view_only %}
-    <form id="post-title-form">
-      {{ post_title_form.hidden_tag() }}
-      {{ post_title_form.title() }}
-      {{ post_title_form.submit() }}
-    </form>
-    {% else %}
-      <h2 id="post-title">
-        {{ dataobj['title'] }}
-      </h2>
-    {% endif %}
-
+    <h2 id="post-title">
+      {{ dataobj['title'] }}
+    </h2>
+    <span class="post-date">{{ dataobj['date'] }}</span>
     <div class="embedded-tags post-tags">
       {% for tag in embedded_tags %}
          <span class="post-tag"><a href="/tags/{{ tag }}">{{ tag }}</a></span>
@@ -69,21 +61,25 @@
   <span class="post-tag"><a href="/tags/{{ tag }}">{{ tag }}</a></span>
       {% endfor %}
     </div>
-    <span class="post-date">{{ dataobj['date'] }}</span>
 
     {% if dataobj['type'] == 'bookmark' or dataobj['type'] == 'pocket_bookmark' %}
       <a href="{{ dataobj['url'] }}" rel="noopener">
         Link
       </a>
     {% endif %}
-    <br>
     <!-- Edit / Delete buttons -->
     {% if not view_only %}
-      <div class="d-flex" id="post-btns">
-          <button onclick="toggleEditor(this)" class="btn">
-            <svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 000-.354l-1.086-1.086zM11.189 6.25L9.75 4.81l-6.286 6.287a.25.25 0 00-.064.108l-.558 1.953 1.953-.558a.249.249 0 00.108-.064l6.286-6.286z"></path></svg>
-            <span>Edit</span>
-          </button>
+      <button onclick="toggleEditor(this)" class="btn">
+        <svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 000-.354l-1.086-1.086zM11.189 6.25L9.75 4.81l-6.286 6.287a.25.25 0 00-.064.108l-.558 1.953 1.953-.558a.249.249 0 00.108-.064l6.286-6.286z"></path></svg>
+        <span>Edit</span>
+      </button>
+      <div id="edit-actions" class="hidden">
+        <form id="post-title-form">
+          {{ post_title_form.hidden_tag() }}
+          {{ post_title_form.title() }}
+          {{ post_title_form.submit() }}
+        </form>
+        <div class="d-flex" id="post-btns">
           <form action="/dataobj/delete/{{ dataobj['id'] }}" method="POST" onsubmit="return confirm('Delete this item permanently?')" novalidate>
             {{ form.hidden_tag() }}
             <button class="btn btn-delete">
@@ -103,8 +99,8 @@
             <input type="checkbox" id="sr-checkbox">
             screenreader mode
           </label>
+        </div>
       </div>
-
     {% endif %}
   </div>
 
@@ -583,6 +579,7 @@
           contentDiv.innerHTML = renderContent(savedContent);
         }
         oldContent.classList.toggle("hidden"), editorDiv.classList.toggle("hidden");
+        document.getElementById("edit-actions").classList.toggle("hidden")
       }
 
       // render backlinks
