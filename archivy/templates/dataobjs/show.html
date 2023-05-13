@@ -62,12 +62,12 @@
     <span class="post-date">{{ dataobj['date'] }}</span>
     <div class="embedded-tags post-tags">
       {% for tag in embedded_tags %}
-         <span class="post-tag"><a href="/tags/{{ tag }}">{{ tag }}</a></span>
+        <a href="/tags/{{ tag }}"><span class="post-tag">{{ tag }}</span></a>
       {% endfor %}
     </div>
     <div class="metadata-tags post-tags">
       {% for tag in dataobj["tags"] %}
-  <span class="post-tag"><a href="/tags/{{ tag }}">{{ tag }}</a></span>
+        <a href="/tags/{{ tag }}"><span class="post-tag">{{ tag }}</span></a>
       {% endfor %}
     </div>
 
