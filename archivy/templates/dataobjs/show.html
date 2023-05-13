@@ -1,8 +1,17 @@
 {% extends "base.html" %}
+{% block search_entry %}
+{% set search_enabled = config['SEARCH_CONF']['enabled'] %}
+{% if search_enabled %}
+    <input type="text" id="searchBar" placeholder="Search">
+{% endif %}
+{% endblock %}
 
+{% block content %}
 
 {% set search_enabled = config['SEARCH_CONF']['enabled'] %}
-{% block content %}
+{% if search_enabled %}
+    <ul id="searchHits"></ul>
+{% endif %}
   <form id="tag_tooltip" class="hidden">
     <input list="tags" id="tag_tooltip_input" class="floating_input" required />
     <datalist id="tags">
@@ -588,5 +597,68 @@
         link.innerHTML = window.parser.customRender(`> ${link.innerHTML}`);
       })
     {% endif %}
+      // search functionality
+  {% if search_enabled %}  
+    function sanitize_match_html(rendered, q)
+    {
+      let stripped_tags = new RegExp("(?:<img.*>|<mark>|</mark>|<bold>|<bold>)", "ig"); // remove unnecessary tags
+      let replace_headings = new RegExp("<h[0-9][^>]*>(.*)</h[0-9]>", "ig"); // replace headings with <p>
+      let highlight_regex = new RegExp(`(?![^<>]*>)(${q})`, "ig"); // replace query in html text, not attributes, with highlights
+      let output = rendered.replace(stripped_tags, "").replace(replace_headings, "<p>$1</p>").replace(highlight_regex, "<mark>$1</mark>");
+      if (!output.match("(?![^<>]*>)\\w+")) { output = ""; } // check there is actual text, not html, in the output
+      return output;
+    }
+    function appendHit(hit, q) {
+      let hitsDiv = document.getElementById("searchHits");
+      let hitLi = document.createElement("li");
+      let a = document.createElement("a");
+      a.href = `/dataobj/${hit["id"]}`, a.textContent = hit["title"];
+      hitLi.append(a);
+      let body = document.createElement("div");
+      if ("matches" in hit)
+      {
+        let max_matches = 4, rendered_matches = "<p>Matches:</p>", n_rendered_matches = 0;
+        hit["matches"].every((match) => {
+          let curr_match_output = sanitize_match_html(window.parser.customRender(match), q);
+          if (curr_match_output != "") { // only render if there is text remaining after sanitization
+            rendered_matches += "<hr>" + curr_match_output;
+            n_rendered_matches++;
+          }
+          if (n_rendered_matches == max_matches) {
+            rendered_matches += "...";
+            return false; // stop looping
+          }
+          return true; // keep going
+        })
+        body.innerHTML += rendered_matches;
+      }
+      hitLi.append(body);
+      hitsDiv.appendChild(hitLi);
+    }
+
+    let input = document.getElementById("searchBar");
+    input.addEventListener('input', async function(e) {
+      let query = input.value;
+      if (input.value !== "")
+      {
+        let searchQuery = await fetch(`${SCRIPT_ROOT}/search?query=${encodeURIComponent(input.value)}`, {
+          "method": "GET"
+        });
+        if (searchQuery.ok && query == input.value) {  
+          let data = await searchQuery.json(), i = 0;
+          document.getElementById("searchHits").innerHTML = "";
+          data.forEach(function(hit)
+          {
+            if (query !== input.value) return;
+            appendHit(hit, query);
+          })
+    
+        }
+      }
+      else {
+        document.getElementById("searchHits").innerHTML = "";
+      }
+    });
+  {% endif %}
   </script>
 {% endblock %}
