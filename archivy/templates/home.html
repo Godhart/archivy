@@ -15,8 +15,21 @@
 
 <div id="files">
 
+  <div class="embedded-tags post-tags">
+      {% for tag in tag_cloud %}
+      <a href="/tags/{{ tag }}">
+          <span class="post-tag">{{ tag }}</span>
+      </a>
+      {% endfor %}
+  </div>
+
     {% if not view_only %}
+        <button onclick="toggleEditor(this)" class="btn">
+          <svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 000-.354l-1.086-1.086zM11.189 6.25L9.75 4.81l-6.286 6.287a.25.25 0 00-.064.108l-.558 1.953 1.953-.558a.249.249 0 00.108-.064l6.286-6.286z"></path></svg>
+          <span>Edit</span>
+        </button>
         <div class="d-flex" id="main-links">
+          <div id="edit-actions" class="hidden">
             <div style="width: 100%;" class="d-flex">
                 <a class="btn" href="/notes/new?path={{current_path}}">
                     New Note
@@ -51,25 +64,22 @@
                     </form>
                 {% endif %}
             </div>
+          </div>
         </div>
     {% endif %}
 
+  <div class="row">
+  <div class="column">
 	<h3>Recently modified</h3>
 	<ul>
       {% for d in most_recent %}
         <li style="display: flex; justify-content: space-between"><a href="/dataobj/{{ d['id'] }}">{{ d['title'] }}</a><p style="color: #696969; margin: 0">Modified at {{ d['modified_at'] }}</p></li>
       {% endfor %}
 	</ul>
+  </div>
+  <div class="column">
+    <h3>Folder content</h3>
     <ul>
-        
-        <div class="folder-tags">
-            {% for tag in tag_cloud %}
-            <a href="/tags/{{ tag }}">
-                <span class="post-tag">{{ tag }}</span>
-            </a>
-            {% endfor %}
-        </div>
-
         {% for subdir in dir.child_dirs.values() | sort(attribute="name") %}
             <li class="dir">
                 <svg class="octicon ml-2 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3h-6.5a.25.25 0 01-.2-.1l-.9-1.2c-.33-.44-.85-.7-1.4-.7h-3.5z"></path></svg>
@@ -83,6 +93,8 @@
             </li>
         {% endfor %}
     </ul>
+  </div>
+  </div>
 </div>
 
 {% if search_enabled %}
@@ -152,5 +164,18 @@
       }
     });
   {% endif %}
+
+  {% if not view_only %}
+    function toggleEditor(btn) {
+      let btnText = btn.querySelector("span");
+      if (btnText.textContent == "Edit") {
+        btnText.textContent = "Hide Editor";
+      } else {
+        btnText.textContent = "Edit";
+      }
+      document.getElementById("edit-actions").classList.toggle("hidden");
+    }
+  {% endif %}
+
 </script>
 {% endblock %}
