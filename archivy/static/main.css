@@ -88,7 +88,16 @@ form {
 }
 
 .content {
-    width: 60%;
+    width: 65%;
+    font-family: sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.table-of-contents {
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
 }
 
 /* user login / edit forms */
