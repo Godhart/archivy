@@ -1,3 +1,9 @@
+.CodeMirror-cursor {
+    border-left: 1px solid var(--light-grey);
+    border-right: none;
+    width: 0
+}
+
 .EasyMDEContainer .CodeMirror {
     color: var(--mid-light-grey);
     background: var(--dark-grey);

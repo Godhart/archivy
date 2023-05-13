@@ -17,6 +17,7 @@
 body {
     color: var(--mid-light-grey);
     background: var(--dark-grey);
+    caret-color: var(--light-grey);
 }
 
 
