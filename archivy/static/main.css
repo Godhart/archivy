@@ -598,3 +598,20 @@ hr {
 .image-inverted {
     filter: brightness(0.85) invert() hue-rotate(180deg);
 }
+
+.column {
+    float: left;
+    width: 50%;
+}
+
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+@media screen and (max-width: 1200px) {
+    .column {
+        width: 100%;
+    }
+}
