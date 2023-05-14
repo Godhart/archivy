@@ -94,6 +94,11 @@ form {
     line-height: 1.6;
 }
 
+.main-wide {
+    width: 84%;
+    margin-left: 8%;
+}
+
 .table-of-contents {
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
     font-size: 16px;
