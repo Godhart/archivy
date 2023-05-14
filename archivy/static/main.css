@@ -155,6 +155,7 @@ form {
     padding: 0;
     padding-top: 30px;
     width: 22%;
+    max-width: 300px;
     overflow: visible;
     border-right: 5px solid #48BB78;
 }
