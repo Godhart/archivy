@@ -97,7 +97,7 @@ def render_pandoc_html(
         return {os.path.split(media_path)[1]: media_path}
 
     result = render_local(
-        data, src, dformat, d_path, serviceUrl, engine, page, force, opts,
+        src, dformat, d_path, serviceUrl, engine, page, force, opts,
         post_process=post_process, custom_cache=custom_cache, extras=extras)
 
     if src_is_temporary:

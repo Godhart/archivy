@@ -56,7 +56,7 @@ def render_drawio(
 
     serviceUrl = ["draw.io", *drawio_opts, src]
 
-    return render_local(data, src, dformat, d_path, serviceUrl, engine, page, force, opts, extras=extras)
+    return render_local(src, dformat, d_path, serviceUrl, engine, page, force, opts, extras=extras)
 
 
 default_handlers.register_handler(

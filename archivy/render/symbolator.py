@@ -67,7 +67,7 @@ def render_symbolator(
                 return None
 
     result = render_local(
-        data, src, dformat, d_path, serviceUrl, engine, page, force, opts,
+        src, dformat, d_path, serviceUrl, engine, page, force, opts,
         output_path = sym_o + PATH_SEP,
         output_path_cleanup= True,
         custom_result_lookup = custom_result_lookup,

@@ -90,7 +90,7 @@ def render_y4s_html(
 
     serviceUrl += [src, d_path, ]
 
-    result = render_local(data, src, dformat, d_path, serviceUrl, engine, page, force, opts, extras = extras)
+    result = render_local(src, dformat, d_path, serviceUrl, engine, page, force, opts, extras = extras)
 
     if src_is_temporary:
         os.unlink(src)

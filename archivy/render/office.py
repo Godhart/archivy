@@ -51,7 +51,7 @@ def render_office(
         return r_path
 
     result = render_local(
-        data, src, dformat, d_path, serviceUrl, engine, page, force, opts,
+        src, dformat, d_path, serviceUrl, engine, page, force, opts,
         output_path=custom_result_lookup(),
         output_path_cleanup=True
     )

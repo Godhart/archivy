@@ -6,7 +6,6 @@ from archivy.render.common import get_param, get_cached_name, update_from_cache,
 
 
 def render_local(
-    data,
     src,
     dformat,
     d_path,
