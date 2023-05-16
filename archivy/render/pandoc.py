@@ -4,6 +4,8 @@ from archivy.render.common import default_handlers, handler_info, handler_engine
 import os
 import re
 import shutil
+from pathlib import Path
+from urllib.request import urlopen
 
 
 _EXT_MAP        = {
@@ -73,7 +75,7 @@ def render_pandoc_html(
     serviceUrl = [
         "pandoc", src,
         f"--extract-media={os.path.join(common.IMG_ROOT_PATH, media_path)}",
-        "-s", 
+        "-s",
         "-t", "html",
         "-o", d_path,
     ]
@@ -127,3 +129,114 @@ default_handlers.register_handler(
         fun         = render_pandoc_html
     )
 )
+
+
+def import_pandoc(
+    src,
+    d_path,
+    engine,
+    page,
+    force,
+    opts,
+):
+
+    if engine is None:
+        engine = "auto"
+
+    from_format = opts.get("from", None)
+
+    pic_inversion = opts.get("pic-inversion", "auto")
+
+    extras = {"service": "pandoc-markdown", "extension": opts.get("extension", None),
+              "pic-inversion": pic_inversion}
+
+    # If src is url - save it into cache dir and then use as source
+    src_is_temporary = False
+    if src[:5] == "http:" or src[:6] == "https:":
+        src_is_temporary = True
+
+        if engine in _EXT_MAP:
+            from_format = engine
+            ext = _EXT_MAP[engine]
+        elif engine == "auto":
+            ext = opts.get("extension", None)
+            if ext is None:
+                raise ValueError("specify 'extension' property for 'auto' engine")
+        else:
+            raise ValueError(f"inline data is not supported for '{engine}'")
+
+        url = src
+        f = urlopen(url)
+        data = f.read()
+        src = temp_file_path(opts, ext)
+        with open(src, "w", encoding='utf-8') as f:
+            f.write(data)
+
+    d_path = os.path.normpath(d_path)
+    media_path = list(os.path.split(d_path))
+    media_path[1] = re.sub(r"\W", "_", media_path[1]) + "_images"
+    media_path = os.path.join(*media_path)
+    if os.path.exists(media_path):
+        shutil.rmtree(media_path)
+
+    to_format = "markdown_strict-raw_html"
+
+    serviceUrl = [
+        "pandoc", src,
+        f"--extract-media={media_path}",
+        "-s",
+        "-t", to_format,
+        "-o", d_path,
+    ]
+
+    if from_format is not None:
+        serviceUrl += ["-f", from_format]
+
+    def post_process(path):
+        with open(path, "r", encoding='utf-8') as f:
+            lines = f.read()
+
+        subst_path = media_path.replace('\\', '\\\\')
+        subst_expr = f"\!\[[^]]*\]\({subst_path}([^)]+)\)"
+        base_path = opts.get('base_path', None)
+        if base_path is None:
+            base_path = Path(d_path).parent
+        else:
+            base_path = Path(base_path)
+        subst_value = str(Path(media_path).relative_to(base_path))
+        # replace values like ![](<media_path>/<picture_path>) with picture fence and path relative to md file
+        fenced_value = f"""```ssq-pic
+src : {subst_value}\\1
+inversion: {pic_inversion}
+```
+"""
+        if opts.get('import_note', False) is True:
+            lines += f"""
+> imported from '{src}'
+""" + lines
+
+        if opts.get('readonly', False) is True:
+            lines = """---
+readonly : true
+---
+""" + lines
+
+        lines = re.sub(subst_expr, fenced_value, lines)
+
+        with open(path, "w", encoding='utf-8') as f:
+            f.write(lines)
+        # TODO: ripoff only necessary part of document (skip/include by specified headers)
+        return
+
+    def custom_cache():
+        return {os.path.split(media_path)[1]: media_path}
+
+    result = render_local(
+        src, "md", d_path, serviceUrl, f"{engine}-{to_format}", page, force, opts,
+        post_process=post_process, custom_cache=custom_cache, extras=extras)
+
+    if src_is_temporary:
+        os.unlink(src)
+
+    return result
+
