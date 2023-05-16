@@ -105,6 +105,8 @@ def _import_foreign(data, relative_path):
                 return f"{error}"
             with open(d_path, "r", encoding='utf-8') as f:
                 data = f.read()
+
+            data = "<!-- following section is imported with " + "\n".join(fenced_code) + "-->\n" + data + "<!-- end of imported data -->\n"
             return data
 
     data.content = import_markdown(data.content, importers)
