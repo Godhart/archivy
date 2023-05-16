@@ -5,10 +5,16 @@ from frontmatter import load  as _load
 
 import os
 import re
+import yaml
 from flask import current_app
 from pathlib import Path
 from datetime import datetime
 
+from archivy.import_fenced import import_markdown
+from archivy.render.pandoc import import_pandoc
+
+from archivy.render.common import to_abs_path
+import archivy.render.common as common
 
 SEP = os.path.join("a", "b")[1]
 
@@ -20,6 +26,88 @@ Post = frontmatter.Post
 def get_data_dir():
     """Returns the directory where dataobjs are stored"""
     return Path(current_app.config["USER_DIR"]) / "data"
+
+
+def _import_foreign(data, relative_path):
+
+    class importers(object):
+
+        @staticmethod
+        def import_markdown(import_options):
+            m = re.match(r"^(?:~+|`+)import(?:--([\w-]+))?.*?$", import_options[0])
+            if m is None:
+                return "`failed to parse import string!`"
+            else:
+                engine = m.groups()[0]
+            if engine is None:
+                engine = 'pandoc'
+
+            if engine not in ('pandoc', ):
+                raise ValueError("`Only 'pandoc' engine is supported yet!`")
+
+            try:
+                import_options = yaml.safe_load("\n".join(import_options[1:-1]))
+            except Exception as e:
+                return f"`````\nFailed to parse yaml due to exception: {e}\n`````"
+
+            if 'src' not in import_options.keys():
+                return "`'src' is required option!`"
+
+            src_abs = str(import_options['src']).replace("\\", "/")
+            if len(src_abs) > 0:
+                if src_abs[:1] != "/":
+                    if relative_path is not None:
+                        src_abs = os.path.join(relative_path, src_abs)
+                src_abs = to_abs_path(common.DATA_ROOT_PATH, src_abs)
+            else:
+                return "`'src' can't be empty!`"
+
+            folder, filename = os.path.split(src_abs)
+            if import_options.get('inplace', False) is True:
+                import_folder = folder
+            else:
+                import_folder = os.path.join(folder, ".import")
+                os.makedirs(import_folder, exist_ok=True)
+                if not os.path.exists(os.path.join(import_folder, ".hidden")):
+                    with open(os.path.join(import_folder, ".hidden"), "w") as f:
+                        pass
+
+            d_path = os.path.join(import_folder, filename +f".{engine}")
+            if 'page' in import_options:
+                d_path += f"-{import_options.get('page')}"
+
+            opts = {}
+            for k, v in import_options.items():
+                if k not in ("src", "page", "force"):
+                    opts[k] = v
+                    # TODO: update d_path safely
+
+            if import_options.get('inplace', False) is True:
+                d_path += ".md"
+                opts['import_note'] = True
+                opts['readonly'] = True
+            else:
+                d_path += ".mdi"
+                opts['base_path'] = os.path.join(get_data_dir(), relative_path)
+
+            try:
+                success, error = import_pandoc(
+                    src=src_abs,
+                    d_path=d_path,
+                    engine=engine,
+                    page=import_options.get('page', None),
+                    force=import_options.get('force', False),
+                    opts=opts,
+                )
+            except Exception as e:
+                success, error = False, f"`````\nFailed to import {import_options['src']} due to exception: {e}\n`````"
+            if not success:
+                return f"{error}"
+            with open(d_path, "r", encoding='utf-8') as f:
+                data = f.read()
+            return data
+
+    data.content = import_markdown(data.content, importers)
 
 
 def _override_note(data):
@@ -55,11 +143,13 @@ def load(filepath):
             filepath = Path(filepath)
         data["_file_path_"] = str(filepath.absolute())
     _override_note(data)
+    _import_foreign(data, filepath.relative_to(get_data_dir()).parent)
     return data
 
 def loads(text):
     data = _loads(text)
     _override_note(data)
+    _import_foreign(data, None)
     return data
 
 def dumps(data, raw=False):
