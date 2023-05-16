@@ -16,7 +16,7 @@ def render_picture(
     if src == "":
         raise ValueError("picture supports input from files only!")
 
-    result = True, None
+    result = [True, None]
 
     if os.path.isdir(src):
         result[0] = False

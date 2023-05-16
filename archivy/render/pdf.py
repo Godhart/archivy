@@ -18,7 +18,7 @@ def render_pdf(
     if src == "":
         raise ValueError("pdf supports input from files only!")
 
-    result = True, None
+    result = [True, None]
 
     if os.path.isdir(src):
         result[0] = False
