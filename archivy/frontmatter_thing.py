@@ -33,8 +33,8 @@ def _import_foreign(data, relative_path):
     class importers(object):
 
         @staticmethod
-        def import_markdown(import_options):
-            m = re.match(r"^(?:~+|`+)import(?:--([\w-]+))?.*?$", import_options[0])
+        def import_markdown(fenced_code):
+            m = re.match(r"^(?:~+|`+)import(?:--([\w-]+))?.*?$", fenced_code[0])
             if m is None:
                 return "`failed to parse import string!`"
             else:
@@ -46,7 +46,7 @@ def _import_foreign(data, relative_path):
                 raise ValueError("`Only 'pandoc' engine is supported yet!`")
 
             try:
-                import_options = yaml.safe_load("\n".join(import_options[1:-1]))
+                import_options = yaml.safe_load("\n".join(fenced_code[1:-1]))
             except Exception as e:
                 return f"`````\nFailed to parse yaml due to exception: {e}\n`````"
 
