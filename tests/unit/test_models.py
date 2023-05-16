@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import archivy.frontmatter_thing as frontmatter
+import archivy.markdown_adapter as frontmatter
 
 from archivy.models import DataObj
 from archivy.helpers import get_max_id

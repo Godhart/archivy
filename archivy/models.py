@@ -7,7 +7,7 @@ from io import BytesIO
 import fnmatch
 from hashlib import md5
 
-import archivy.frontmatter_thing as frontmatter
+import archivy.markdown_adapter as frontmatter
 import requests
 import validators
 from attr import attrs, attrib

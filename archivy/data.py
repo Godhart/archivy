@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-import archivy.frontmatter_thing as frontmatter
+import archivy.markdown_adapter as frontmatter
 from flask import current_app
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage

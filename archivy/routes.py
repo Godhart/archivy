@@ -4,7 +4,7 @@ from pkg_resources import require
 from shutil import which
 from datetime import datetime
 
-import archivy.frontmatter_thing as frontmatter
+import archivy.markdown_adapter as frontmatter
 from flask import (
     render_template,
     flash,
