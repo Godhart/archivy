@@ -84,14 +84,14 @@ def render_pandoc_html(
     def post_process(path):
         # Normalize links to images
         with open(path, "r", encoding='utf-8') as f:
-            page = f.read()
+            html = f.read()
 
-        page = re.sub(common.IMG_ROOT_PATH.replace("\\", "\\\\"), "/images", page)
+        html = re.sub(common.IMG_ROOT_PATH.replace("\\", "\\\\"), "/images", html)
 
         # TODO: ripoff only necessary part of document (skip/include by specified headers)
 
         with open(path, "w", encoding='utf-8') as f:
-            f.write(page)
+            f.write(html)
 
     def custom_cache():
         return {os.path.split(media_path)[1]: media_path}
