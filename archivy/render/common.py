@@ -5,6 +5,7 @@ import random
 import datetime
 import json
 import filecmp
+from pathlib import Path
 import shutil
 
 
@@ -96,9 +97,12 @@ def sync_files(src, dst, allow_delete=False):
         if not os.path.exists(dst) or not os.path.isdir(dst):
             pass
         else:
-            _, mismatch, errors = filecmp.cmpfiles(src, dst, shallow=False)
-            if len(mismatch) == 0 and len(errors) == 0:
-                return True
+            src_files = tuple(Path(src).glob("**/*"))
+            dst_files = tuple(Path(dst).glob("**/*"))
+            if len(src_files) == len(dst_files) and src_files == dst_files:
+                _, mismatch, errors = filecmp.cmpfiles(src, dst, src_files, shallow=False)
+                if len(mismatch) == 0 and len(errors) == 0:
+                    return True
 
     if os.path.exists(dst):
         if os.path.isfile(dst):
