@@ -227,11 +227,13 @@ def search_endpoint():
 
     Request URL Parameter:
     - **query**
+    - **start_path**
     """
     if not current_app.config["SEARCH_CONF"]["enabled"]:
         return Response("Search is disabled", status=401)
     query = request.args.get("query")
-    search_results = search(query)
+    start_path = request.args.get("start_path", None)
+    search_results = search(query, start_path=start_path)
     return jsonify(search_results)
 
 
