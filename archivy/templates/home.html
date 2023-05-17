@@ -63,6 +63,16 @@
                         {{ rename_form.submit() }}
                     </form>
                 {% endif %}
+                {% if current_path != "" %}
+                    <form action="/folders/import" method="post" class="d-flex">
+                        {{ import_form.csrf_token }}
+                        {{ import_form.current_path(value=current_path) }}
+                        {{ import_form.recursive(checked=true) }}
+                        {{ import_form.readonly(checked=true) }}
+                        {{ import_form.force(checked=false) }}
+                        {{ import_form.submit() }}
+                    </form>
+                {% endif %}
             </div>
           </div>
         </div>
