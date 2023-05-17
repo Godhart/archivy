@@ -8,9 +8,10 @@ import re
 import yaml
 from flask import current_app
 from pathlib import Path
+import time
 from datetime import datetime
+import shutil
 
-from archivy.import_fenced import import_markdown
 from archivy.render.pandoc import import_pandoc
 
 from archivy.render.common import to_abs_path
@@ -28,88 +29,183 @@ def get_data_dir():
     return Path(current_app.config["USER_DIR"]) / "data"
 
 
-def _import_foreign(data, relative_path):
+class importers(object):
 
-    class importers(object):
+    @staticmethod
+    def import_fenced(fenced_code, relative_path):
+        src_relative = None
 
-        @staticmethod
-        def import_markdown(fenced_code):
-            m = re.match(r"^(?:~+|`+)import(?:--([\w-]+))?.*?$", fenced_code[0])
-            if m is None:
-                return "`failed to parse import string!`"
-            else:
-                engine = m.groups()[0]
-            if engine is None:
-                engine = 'pandoc'
+        m = re.match(r"^(?:~+|`+)import(?:--([\w-]+))?.*?$", fenced_code[0])
+        if m is None:
+            return False, "`failed to parse fenced import preamble!`", src_relative
+        else:
+            engine = m.groups()[0]
+        if engine is None:
+            engine = 'pandoc'
 
-            if engine not in ('pandoc', ):
-                raise ValueError("`Only 'pandoc' engine is supported yet!`")
+        if engine not in ('pandoc', ):
+            return False, "`Only 'pandoc' engine is supported yet!`", src_relative
 
-            try:
-                import_options = yaml.safe_load("\n".join(fenced_code[1:-1]))
-            except Exception as e:
-                return f"`````\nFailed to parse yaml due to exception: {e}\n`````"
+        try:
+            import_options = yaml.safe_load("\n".join(fenced_code[1:-1]))
+        except Exception as e:
+            return False, f"`````\nFailed to parse yaml due to exception: {e}\n`````", src_relative
 
-            if 'src' not in import_options.keys():
-                return "`'src' is required option!`"
+        if 'src' not in import_options.keys():
+            return False, "`'src' is required option!`", src_relative
 
-            src_abs = str(import_options['src']).replace("\\", "/")
-            if len(src_abs) > 0:
-                if src_abs[:1] != "/":
-                    if relative_path is not None:
-                        src_abs = os.path.join(relative_path, src_abs)
-                src_abs = to_abs_path(common.DATA_ROOT_PATH, src_abs)
-            else:
-                return "`'src' can't be empty!`"
+        src_abs = str(import_options['src']).replace("\\", "/")
+        if len(src_abs) > 0:
+            if src_abs[:1] != "/":
+                if relative_path is not None:
+                    src_abs = os.path.join(relative_path, src_abs)
+            src_abs = to_abs_path(common.DATA_ROOT_PATH, src_abs)
+        else:
+            return False, "`'src' can't be empty!`", src_relative
 
-            folder, filename = os.path.split(src_abs)
-            if import_options.get('inplace', False) is True:
-                import_folder = folder
-            else:
-                import_folder = os.path.join(folder, ".import")
-                os.makedirs(import_folder, exist_ok=True)
-                if not os.path.exists(os.path.join(import_folder, ".hidden")):
-                    with open(os.path.join(import_folder, ".hidden"), "w") as f:
-                        pass
+        src_relative = Path(src_abs).relative_to(get_data_dir())
 
-            d_path = os.path.join(import_folder, filename +f".{engine}")
-            if 'page' in import_options:
-                d_path += f"-{import_options.get('page')}"
+        if not os.path.exists(src_abs):
+            return False, "`'src' should exist!`", src_relative
 
-            opts = {}
-            for k, v in import_options.items():
-                if k not in ("src", "page", "force"):
-                    opts[k] = v
-                    # TODO: update d_path safely
+        if not os.path.isfile(src_abs):
+            return False, "`'src' should point to a file!`", src_relative
+        
+        inplace = import_options.get('inplace', False) is True
 
-            if import_options.get('inplace', False) is True:
+        folder, filename = os.path.split(src_abs)
+        if inplace:
+            import_folder = folder
+        else:
+            import_folder = os.path.join(folder, ".import")
+            os.makedirs(import_folder, exist_ok=True)
+            if not os.path.exists(os.path.join(import_folder, ".hidden")):
+                with open(os.path.join(import_folder, ".hidden"), "w") as f:
+                    pass
+
+        d_path = os.path.join(import_folder, filename +f".{engine}")
+        if 'page' in import_options:
+            d_path += f"-{import_options.get('page')}"
+
+        opts = {}
+        for k, v in import_options.items():
+            if k not in ("src", "page", "force"):
+                opts[k] = v
+
+        if inplace:
+            # Result is placed along with original with markdown extension
+            output_name = opts.get('name', None)
+            if output_name is not None and output_name.strip() == '':
+                output_name = None
+            if output_name is None:
                 d_path += ".md"
-                opts['import_note'] = True
-                opts['readonly'] = True
             else:
-                d_path += ".mdi"
-                opts['base_path'] = os.path.join(get_data_dir(), relative_path)
+                d_path += ".tmp"
+            opts['import_note'] = True
+            if 'readonly' not in opts:
+                opts['readonly'] = True
 
-            try:
-                success, error = import_pandoc(
-                    src=src_abs,
-                    d_path=d_path,
-                    engine=engine,
-                    page=import_options.get('page', None),
-                    force=import_options.get('force', False),
-                    opts=opts,
-                )
-            except Exception as e:
-                success, error = False, f"`````\nFailed to import {import_options['src']} due to exception: {e}\n`````"
-            if not success:
-                return f"{error}"
-            with open(d_path, "r", encoding='utf-8') as f:
-                data = f.read()
+            d_path = os.path.join(os.path.split(d_path)[0], output_name + ".md")
 
-            data = "<!-- following section is imported with " + "\n".join(fenced_code) + "-->\n" + data + "<!-- end of imported data -->\n"
-            return data
+            if os.path.exists(d_path):
+                if not import_options.get('force', False):
+                    return None, (f"File at path '{Path(d_path).relative_to(get_data_dir())}' already exists!\n"
+                            "Use 'force' option if you want to override it"), src_relative
+                else:
+                    os.unlink(d_path)
+        else:
+            output_name = None
+            d_path += ".mdi"
+            opts['base_path'] = os.path.join(get_data_dir(), relative_path)
 
-    data.content = import_markdown(data.content, importers)
+        try:
+            success, error = import_pandoc(
+                src=src_abs,
+                d_path=d_path,
+                engine=engine,
+                page=import_options.get('page', None),
+                force=import_options.get('force', False),
+                opts=opts,
+            )
+        except Exception as e:
+            success, error = False, f"`````\nFailed to import {import_options['src']} due to exception: {e}\n`````"
+
+        if not success:
+            return False, f"{error}", src_relative
+
+        with open(d_path, "r", encoding='utf-8') as f:
+            text = f.read()
+
+        current_date = datetime.fromtimestamp(time.time()).strftime(r"%Y-%m-%d %H:%M:%S")
+        text = f"<!-- following section is imported at {current_date} with " + "\n".join(fenced_code) + \
+            "-->\n" + text + "<!-- end of imported data -->\n"
+
+        return True, text, src_relative
+
+
+def _import_foreign(text, relative_path):
+
+    result = []
+    errors = []
+    successfully = []
+
+    fenced = ""
+    style = ""
+    kind = ""
+
+    to_import = None
+
+    for line in text.split("\n"):
+        if len(fenced) == 0:
+            if line[:3] not in ("~~~", "```"):
+                result.append(line)
+                continue
+            m = re.match(r"^(~+|`+)\{(.*?)\}$", line)
+            if m is None:
+                m = re.match(r"^(~+|`+)([\w-]*).*?$", line)
+                assert m is not None, "Something went wrong!"
+                style = "M"
+            else:
+                style = "R"
+            fenced = m.groups()[0]
+            kind = m.groups()[1]
+            if style == "R" or kind == "import" or kind[:8] == "import--":
+                to_import = [line]
+            else:
+                result.append(line)
+        else:
+            if to_import is None:
+                result.append(line)
+            else:
+                to_import.append(line)
+
+            if line.strip() == fenced:
+                fenced = ""
+                if to_import is not None:
+                    success, text, src = importers.import_fenced(to_import, relative_path)
+                    if success is not None:
+                        if not success:
+                            errors.append(text)
+                        else:
+                            successfully.append(src)
+                    result.append(text) # NOTE: in case of error - message about error would be within result
+                    to_import = None
+
+    return "\n".join(result), errors, successfully
+
+
+def import_foreign(file_path, readonly, force):
+    text = f"""
+```import
+inplace : true
+src : {file_path}
+readonly : {readonly}
+name : "{Path(file_path).stem}"
+force : {force}
+```
+"""
+    _, errors, successfully = _import_foreign(text, None)
+    return successfully, errors
 
 
 def _override_note(data):
@@ -145,13 +241,19 @@ def load(filepath):
             filepath = Path(filepath)
         data["_file_path_"] = str(filepath.absolute())
     _override_note(data)
-    _import_foreign(data, filepath.relative_to(get_data_dir()).parent)
+    if data.metadata.get("import", False):
+        data.content, errors, _ = _import_foreign(data.content, filepath.relative_to(get_data_dir()).parent)
+    # NOTE: in case of errors fenced code of import section in result is replaced with error message,
+    # errors processing is not necessary in this case
     return data
 
 def loads(text):
     data = _loads(text)
     _override_note(data)
-    _import_foreign(data, None)
+    if data.metadata.get("import", False):
+        data.content, errors, _ = _import_foreign(data.content, None)
+    # NOTE: in case of errors fenced code of import section in result is replaced with error message,
+    # errors processing is not necessary in this case
     return data
 
 def dumps(data, raw=False):
