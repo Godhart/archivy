@@ -48,7 +48,7 @@
                     </button>
                 </form>
             </div>
-            <div class="d-flex">
+            <div>
                 <form action="/folders/create" method="post" class="d-flex">
                     {{ new_folder_form.csrf_token }}
                     {{ new_folder_form.parent_dir(value=current_path) }}
