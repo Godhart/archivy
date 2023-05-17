@@ -74,6 +74,10 @@ def build_dir_tree(path, query_dir, load_content=True):
         current_path = filepath.relative_to(query_dir)
         current_dir = datacont
 
+        # Skip hidden items
+        if any(segment[:1] == "." for segment in current_path.parts):
+            continue
+
         # iterate through parent directories
         for segment in current_path.parts[:-1]:
             # directory has not been saved in tree yet
