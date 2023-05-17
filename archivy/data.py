@@ -70,12 +70,32 @@ def build_dir_tree(path, query_dir, load_content=True):
         if they're not going to be accessed.
     """
     datacont = Directory(path or "root")
+    hidden = []
     for filepath in query_dir.rglob("*"):
         current_path = filepath.relative_to(query_dir)
         current_dir = datacont
 
         # Skip hidden items
-        if any(segment[:1] == "." for segment in current_path.parts):
+        if any(segment[:1] == "." for segment in filepath.relative_to(get_data_dir()).parts):
+            continue
+        
+        cp = Path(filepath)
+
+        if any(cp.is_relative_to(hd) for hd in hidden):
+            continue
+
+        is_hidden = False
+        while query_dir.parent != cp:
+            if (cp / ".hidden").exists():
+                is_hidden = True
+                break
+            cpp = cp.parent
+            if cpp == cp:
+                break
+            cp = cpp
+
+        if is_hidden:
+            hidden.append(cp)
             continue
 
         # iterate through parent directories
