@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime
 
 import archivy.markdown_adapter as frontmatter
+from archivy.markdown_adapter import import_foreign
 from flask import current_app
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
@@ -226,6 +227,32 @@ def rename_folder(old_path, new_name):
         raise FileExistsError
     curr_dir.rename(suggested_renaming)
     return str(suggested_renaming.relative_to(data_dir))
+
+
+def import_folder(folder_path, recursive, readonly, force):
+    data_dir = get_data_dir()
+    curr_dir = (data_dir / folder_path).resolve()
+
+    success = []
+    errors = []
+
+    for root, _, files in os.walk(str(curr_dir)):
+        for fn in files:
+            fp = Path(os.path.join(root, fn))
+            if fp.suffix not in (".docx", ".odt", ):  # TODO: get supported suffixes from pandoc
+                continue
+            fp_relative = fp.relative_to(data_dir)
+            try:
+                fp_success, fp_errors = import_foreign(fp_relative, readonly, force)
+                if len(fp_success) > 0:
+                    success.append(str(fp_relative))
+                if len(fp_errors) > 0:
+                    errors.append((f"Failed to import '{fp_relative}' due to {fp_errors}!"))
+            except Exception as e:
+                errors.append(f"Failed to import '{fp_relative}' due to {e}!")
+        if not recursive:
+            break
+    return success, errors
 
 
 def delete_item(dataobj_id):
