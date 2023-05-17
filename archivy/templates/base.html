@@ -144,17 +144,20 @@
                 </script>
             {% endif %}
             </div>
-            {% if current_user.is_authenticated and not view_only %}
+            {% if current_user.is_authenticated %}
                 <div id="search-entry-placeholder">{% block search_entry %}{% endblock %}</div>
                 <p>&nbsp;</p>
            {% endif %}
  
-            {% if current_user.is_authenticated and not view_only %}
+            {% if current_user.is_authenticated %}
     {% if config["RG_INSTALLED"] %}
         <a href="/tags" class="Header-link Header-item">
             <h3>Tags</h3>
         </a>
     {% endif %}
+            {% endif %}
+
+            {% if current_user.is_authenticated and not view_only %}
     {% if config["SHOW_PLUGINS"] %}
                 <a href="/plugins" class="Header-link Header-item">
                     <h3>Plugins</h3>
@@ -165,6 +168,8 @@
                     <h3>Bookmarklet</h3>
                 </a>
     {% endif %}
+            {% endif %}
+
                 <a href="javascript:toggle_lights()" class="Header-link Header-item">
                     <h3 id="light_toggle">
                         {% if config.THEME_CONF.get('use_theme_dark', False) %}
@@ -175,6 +180,8 @@
                         {% endif %}
                     </h3>
                 </a>
+
+            {% if current_user.is_authenticated and not view_only %}
     {% if config["SHOW_USEREDIT"] %}
                 <a href="/user/edit" class="Header-item">
                     <svg class="octicon" color="white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="30" height="30"><path fill-rule="evenodd" d="M10.5 5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm.061 3.073a4 4 0 10-5.123 0 6.004 6.004 0 00-3.431 5.142.75.75 0 001.498.07 4.5 4.5 0 018.99 0 .75.75 0 101.498-.07 6.005 6.005 0 00-3.432-5.142z"></path></svg>
