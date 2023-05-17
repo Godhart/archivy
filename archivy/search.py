@@ -113,7 +113,7 @@ def parse_ripgrep_line(line):
     return (data, hit["type"])
 
 
-def query_ripgrep(query):
+def query_ripgrep(query, start_path=None):
     """
     Uses ripgrep to search data with a simpler setup than ES.
     Returns a list of dicts with detailed matches.
@@ -124,7 +124,20 @@ def query_ripgrep(query):
     if not which("rg"):
         return []
 
-    rg_cmd = ["rg", RG_MISC_ARGS, RG_FILETYPE, "--json", query, str(get_data_dir())]
+    global_search = (query[:1] == '/' and query[:2] != '//')
+    if global_search:
+        query = query[1:]
+    else:
+        if query[:2] == '//':
+            query = query[1:]
+
+    if start_path is None or global_search:
+        start_path = get_data_dir()
+    else:
+        start_path = get_data_dir() / Path(start_path)
+        if not start_path.is_relative_to(get_data_dir()):
+            return []
+    rg_cmd = ["rg", RG_MISC_ARGS, RG_FILETYPE, "--json", query, str(start_path)]
     rg = run(rg_cmd, stdout=PIPE, stderr=PIPE, timeout=60)
     output = rg.stdout.decode().splitlines()
     hits = []
@@ -271,7 +284,7 @@ def query_ripgrep_tags_selection(tags):
         return [], result_tags
 
 
-def search(query, strict=False):
+def search(query, strict=False, start_path=None):
     """
     Wrapper to search methods for different engines.
 
@@ -280,4 +293,4 @@ def search(query, strict=False):
     if current_app.config["SEARCH_CONF"]["engine"] == "elasticsearch":
         return query_es_index(query, strict=strict)
     elif current_app.config["SEARCH_CONF"]["engine"] == "ripgrep" or which("rg"):
-        return query_ripgrep(query)
+        return query_ripgrep(query, start_path=start_path)
