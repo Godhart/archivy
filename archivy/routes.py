@@ -85,6 +85,7 @@ def index():
         new_folder_form=forms.NewFolderForm(),
         delete_form=forms.DeleteFolderForm(),
         rename_form=forms.RenameDirectoryForm(),
+        import_form=forms.ImportFolderForm(),
         view_only=os.environ.get("ARCHIVY_VIEW_ONLY", "True").lower() != "false",
         tag_cloud=tag_cloud,
         most_recent=most_recent,
@@ -440,6 +441,24 @@ def rename_folder():
         except FileExistsError:
             flash("Target directory exists.", "error")
     return redirect("/")
+
+
+@app.route("/folders/import", methods=["POST"])
+def import_folder():
+    form = forms.ImportFolderForm()
+    if form.validate_on_submit():
+        try:
+            success, errors = data.import_folder(
+                form.current_path.data, form.recursive.data, form.readonly.data, form.force.data)
+            if len(success) > 0:
+                flash(f"Successfully imported {len(success)} file(s).", "success")
+            if len(errors) > 0:
+                errors_str = '\n'.join(errors)
+                flash(f"Import errors: {errors_str}", "error")
+            return redirect(f"/?path={form.current_path.data}")
+        except FileNotFoundError:
+            flash("Directory not found.", "error")
+    return redirect(f"/?path={form.current_path.data}")
 
 
 @app.route("/bookmarklet")
