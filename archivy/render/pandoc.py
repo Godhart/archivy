@@ -4,6 +4,8 @@ from archivy.render.common import default_handlers, handler_info, handler_engine
 import os
 import re
 import shutil
+import time
+from datetime import datetime
 from pathlib import Path
 from urllib.request import urlopen
 
@@ -147,7 +149,7 @@ def import_pandoc(
 
     pic_inversion = opts.get("pic-inversion", "auto")
 
-    extras = {"service": "pandoc-markdown", "extension": opts.get("extension", None),
+    extras = {"service": "pandoc-markdown",
               "pic-inversion": pic_inversion}
 
     # If src is url - save it into cache dir and then use as source
@@ -179,7 +181,7 @@ def import_pandoc(
     if os.path.exists(media_path):
         shutil.rmtree(media_path)
 
-    to_format = "markdown_strict-raw_html"
+    to_format = "gfm-raw_html"
 
     serviceUrl = [
         "pandoc", src,
@@ -210,18 +212,18 @@ src : {subst_value}\\1
 inversion: {pic_inversion}
 ```
 """
+        lines = re.sub(subst_expr, fenced_value, lines)
+
         if opts.get('import_note', False) is True:
-            lines += f"""
-> imported from '{src}'
-""" + lines
+            current_date = datetime.fromtimestamp(time.time()).strftime(r"%Y-%m-%d %H:%M:%S")
+            lines = f"<!-- following section is imported at {current_date} from '{src}' -->\n" + \
+                lines + "<!-- end of imported data -->\n"
 
         if opts.get('readonly', False) is True:
             lines = """---
 readonly : true
 ---
 """ + lines
-
-        lines = re.sub(subst_expr, fenced_value, lines)
 
         with open(path, "w", encoding='utf-8') as f:
             f.write(lines)
