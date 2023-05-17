@@ -52,6 +52,14 @@ class DeleteFolderForm(FlaskForm):
     dir_name = HiddenField(validators=[DataRequired()])
 
 
+class ImportFolderForm(FlaskForm):
+    current_path = HiddenField()
+    recursive = BooleanField()
+    readonly = BooleanField()
+    force = BooleanField()
+    submit = SubmitField("Import Foreign Data")
+
+
 class UserForm(FlaskForm):
     username = StringField("username")
     password = PasswordField("password")
