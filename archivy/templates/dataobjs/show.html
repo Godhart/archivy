@@ -190,8 +190,10 @@
           searchHits.innerHTML = "";
         }
       }
+    {% endif %}
 
       window.addEventListener("load", function() {
+    {% if not view_only  %}
         // Set up the editor
         editor = new EasyMDE({
           autofocus: true,
@@ -557,6 +559,8 @@
         srSaveBtn.onclick = screenReaderSave;
         {{ js_ext | safe }}
 
+    {% endif %}
+
         /* Toggle lazyrender */
         (function(){
           Renderer.render_by_clsid("lazyrender");
@@ -581,7 +585,7 @@
         }
       })  // window.addEventListener("load")
 
-
+    {% if not view_only  %}
 
       function toggleEditor(btn) {
         let btnText = btn.querySelector("span");
