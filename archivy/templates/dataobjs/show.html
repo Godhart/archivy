@@ -575,6 +575,10 @@
             toggle_lights(!custom_dark);
           }
         }
+        if (window.location.hash) {
+          // NOTE: anchors are updated after markdown rendering, so need to jump to anchor after that
+          location.hash = window.location.hash;
+        }
       })  // window.addEventListener("load")
 
 
