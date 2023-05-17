@@ -236,6 +236,10 @@ readonly : true
     result = render_local(
         src, "md", d_path, serviceUrl, f"{engine}-{to_format}", page, force, opts,
         post_process=post_process, custom_cache=custom_cache, extras=extras)
+    
+    if not os.path.exists(os.path.join(media_path, ".hidden")):
+        with open(os.path.join(media_path, ".hidden"), "w") as f:
+            pass
 
     if src_is_temporary:
         os.unlink(src)
