@@ -115,6 +115,7 @@
   {% if search_enabled %}  
     function sanitize_match_html(rendered, q)
     {
+      q = q.replace(new RegExp(`^/(.)`), "$1")
       let stripped_tags = new RegExp("(?:<img.*>|<mark>|</mark>|<bold>|<bold>)", "ig"); // remove unnecessary tags
       let replace_headings = new RegExp("<h[0-9][^>]*>(.*)</h[0-9]>", "ig"); // replace headings with <p>
       let highlight_regex = new RegExp(`(?![^<>]*>)(${q})`, "ig"); // replace query in html text, not attributes, with highlights
@@ -155,7 +156,7 @@
       let query = input.value;
       if (input.value !== "")
       {
-        let searchQuery = await fetch(`${SCRIPT_ROOT}/search?query=${encodeURIComponent(input.value)}`, {
+        let searchQuery = await fetch(`${SCRIPT_ROOT}/search?query=${encodeURIComponent(input.value)}&start_path=${encodeURIComponent("{{ current_path }}")}`, {
           "method": "GET"
         });
         if (searchQuery.ok && query == input.value) {  
