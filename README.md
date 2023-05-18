@@ -4,6 +4,8 @@
 
 Archivy is a self-hostable knowledge repository that allows you to learn and retain information in your own personal and extensible wiki.
 
+> This is a modified version of archivy containing breaking changes, check [CHANGES.md](CHANGES.md) for details
+
 Features:
 
 - If you add bookmarks, their web-pages contents' will be saved to ensure that you will **always** have access to it, following the idea of [digital preservation](https://jeffhuang.com/designed_to_last/). Archivy is also easily integrated with other services and your online accounts.
