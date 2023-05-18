@@ -67,10 +67,10 @@
                     <form action="/folders/import" method="post" class="d-flex">
                         {{ import_form.csrf_token }}
                         {{ import_form.current_path(value=current_path) }}
-                        {{ import_form.recursive(checked=true) }}
-                        {{ import_form.readonly(checked=true) }}
-                        {{ import_form.force(checked=false) }}
                         {{ import_form.submit() }}
+                        <label class="checkbox-label">Recursively</label> {{ import_form.recursive(checked=true) }}
+                        <label class="checkbox-label">Readoonly</label> {{ import_form.readonly(checked=true) }}
+                        <label class="checkbox-label">Force</label> {{ import_form.force(checked=false) }}
                     </form>
                 {% endif %}
             </div>
