@@ -3,7 +3,8 @@ from werkzeug.security import check_password_hash
 from flask_login import login_user
 from tinydb import Query
 
-from archivy import data, tags
+from archivy.db import layer
+from archivy.data import valid_image_filename, save_image
 from archivy.search import search
 from archivy.models import DataObj, User
 from archivy.helpers import get_db
@@ -91,7 +92,7 @@ def create_note():
 @api_bp.route("/dataobjs/<dataobj_id>")
 def get_dataobj(dataobj_id):
     """Returns dataobj of given id"""
-    dataobj = data.get_item(dataobj_id)
+    dataobj = layer().get_item(dataobj_id)
 
     return (
         jsonify(
@@ -108,9 +109,9 @@ def get_dataobj(dataobj_id):
 @api_bp.route("/dataobjs/<dataobj_id>", methods=["DELETE"])
 def delete_dataobj(dataobj_id):
     """Deletes object of given id"""
-    if not data.get_item(dataobj_id):
+    if not layer().get_item(dataobj_id):
         return Response(status=404)
-    data.delete_item(dataobj_id)
+    layer().delete_item(dataobj_id)
     return Response(status=204)
 
 
@@ -125,7 +126,7 @@ def update_dataobj(dataobj_id):
     """
     if request.json.get("content"):
         try:
-            data.update_item_md(dataobj_id, request.json.get("content"))
+            layer().update_item_md(dataobj_id, request.json.get("content"))
             return Response(status=200)
         except BaseException:
             return Response(status=404)
@@ -151,7 +152,7 @@ def update_dataobj_frontmatter(dataobj_id):
     # TODO: error in case of unknown key in json
 
     try:
-        data.update_item_frontmatter(dataobj_id, new_frontmatter)
+        layer().update_item_frontmatter(dataobj_id, new_frontmatter)
         return Response(status=200)
     except BaseException:
         return Response(status=404)
@@ -160,7 +161,7 @@ def update_dataobj_frontmatter(dataobj_id):
 @api_bp.route("/dataobjs", methods=["GET"])
 def get_dataobjs():
     """Gets all dataobjs"""
-    cur_dir = data.get_items(structured=False, json_format=True)
+    cur_dir = layer().get_items(structured=False, json_format=True)
     return jsonify(cur_dir)
 
 
@@ -168,8 +169,8 @@ def get_dataobjs():
 def add_tag_to_index():
     """Add a tag to the database."""
     tag = request.json.get("tag", False)
-    if tag and type(tag) is str and tags.is_tag_format(tag):
-        if tags.add_tag_to_index(tag):
+    if tag and type(tag) is str and layer('tags').is_tag_format(tag):
+        if layer('tags').add_tag_to_index(tag):
             return Response(status=200)
         else:
             return Response(status=404)
@@ -179,9 +180,9 @@ def add_tag_to_index():
 
 @api_bp.route("/dataobj/local_edit/<dataobj_id>", methods=["GET"])
 def local_edit(dataobj_id):
-    dataobj = data.get_item(dataobj_id)
+    dataobj = layer().get_item(dataobj_id)
     if dataobj:
-        data.open_file(dataobj["fullpath"])
+        layer().open_file(dataobj["fullpath"])
         return Response(status=200)
     return Response(status=404)
 
@@ -196,7 +197,7 @@ def create_folder():
     """
     directory = request.json.get("path")
     try:
-        sanitized_name = data.create_dir(directory)
+        sanitized_name = layer().create_dir(directory)
         if not sanitized_name:
             return Response("Invalid dirname", status=400)
     except FileExistsError:
@@ -215,7 +216,7 @@ def delete_folder():
     directory = request.json.get("path")
     if directory == "":
         return Response("Cannot delete root dir", status=401)
-    if data.delete_dir(directory):
+    if layer().delete_dir(directory):
         return Response("Successfully deleted", status=200)
     return Response("Could not delete directory", status=400)
 
@@ -244,10 +245,10 @@ def image_upload():
         return jsonify({"error": "400"}), 400
     image = request.files["image"]
     if (
-        data.valid_image_filename(image.filename)
+        valid_image_filename(image.filename)
         and image.headers["Content-Type"].strip() in CONTENT_TYPES
     ):
-        saved_to = data.save_image(image)
+        saved_to = save_image(image)
         return jsonify({"data": {"filePath": f"/images/{saved_to}"}}), 200
     return jsonify({"error": "415"}), 415
 

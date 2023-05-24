@@ -22,9 +22,9 @@ from werkzeug.security import generate_password_hash
 from werkzeug.datastructures import FileStorage
 
 from archivy import helpers
-from archivy.data import create, save_image, valid_image_filename
+from archivy.db import layer
+from archivy.data import valid_image_filename, save_image
 from archivy.search import add_to_index
-from archivy.tags import add_tag_to_index
 
 
 # TODO: use this as 'type' field
@@ -204,7 +204,7 @@ class DataObj:
         """Creates a new file with the object's attributes"""
         if self.validate():
             for tag in self.tags:
-                add_tag_to_index(tag)
+                layer('tags').add_tag_to_index(tag)
             if self.type == 'note':
                 self.id = os.path.join(self.path, str(self.title)).replace(' ', '_').replace('/', "--").replace('\\', "--")
                 file_name = f"{self.title}".replace(' ', '_')
@@ -235,7 +235,7 @@ class DataObj:
             dataobj = frontmatter.Post(self.content)
             dataobj.metadata = data
             self.fullpath = str(
-                create(
+                layer().create(
                     frontmatter.dumps(dataobj),
                     file_name,
                     path=self.path,

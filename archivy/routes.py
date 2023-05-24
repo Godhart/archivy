@@ -19,10 +19,11 @@ from tinydb import Query
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from archivy.models import DataObj, User
-from archivy import data, app, forms, csrf
+from archivy import app, forms, csrf
+from archivy.db import layer
+from archivy.data import image_exists2, valid_image_filename
 from archivy.helpers import get_db, write_config, is_safe_redirect_url
-from archivy.tags import get_all_tags
-from archivy.search import search, search_frontmatter_tags, query_ripgrep_tags_selection
+from archivy.search import search, search_frontmatter_tags
 from archivy.config import Config
 
 from urllib.parse import urlencode as ue
@@ -33,7 +34,7 @@ import os
 
 @app.context_processor
 def pass_defaults():
-    dataobjs = data.get_items(load_content=False)
+    dataobjs = layer().get_items(load_content=False)
     version = require("archivy")[0].version
     SEP = sep
     # check windows parsing for js (https://github.com/Uzay-G/archivy/issues/115)
@@ -59,12 +60,12 @@ def check_perms():
 def index():
     path = request.args.get("path", "").lstrip("/")
     try:
-        files = data.get_items(path=path)
+        files = layer().get_items(path=path)
         process_modified = lambda x: datetime.strptime(x.get("modified_at"), "%x %H:%M")
         recent_notes = list(
             filter(
                 lambda x: "modified_at" in x,
-                data.get_items(path=path, structured=False),
+                layer().get_items(path=path, structured=False),
             )
         )
         most_recent = sorted(recent_notes, key=process_modified, reverse=True)[:5]
@@ -98,7 +99,7 @@ def new_bookmark():
     default_dir = app.config.get("DEFAULT_BOOKMARKS_DIR", "root directory")
     form = forms.NewBookmarkForm(path=default_dir)
     form.path.choices = [("", "root directory")] + [
-        (pathname, pathname) for pathname in data.get_dirs()
+        (pathname, pathname) for pathname in layer().get_dirs()
     ]
     if form.validate_on_submit():
         path = form.path.data
@@ -126,7 +127,7 @@ def new_note():
     form = forms.NewNoteForm()
     default_dir = "root directory"
     form.path.choices = [("", default_dir)] + [
-        (pathname, pathname) for pathname in data.get_dirs()
+        (pathname, pathname) for pathname in layer().get_dirs()
     ]
     if form.validate_on_submit():
         path = form.path.data
@@ -148,7 +149,7 @@ def show_all_tags():
     if not app.config["SEARCH_CONF"]["engine"] == "ripgrep" and not which("rg"):
         flash("Ripgrep must be installed to view pages about embedded tags.", "error")
         return redirect("/")
-    tags = sorted(get_all_tags(force=True))
+    tags = sorted(layer('tags').get_all_tags(force=True))
     return render_template("tags/all.html", title="All Tags", tags=tags)
 
 
@@ -159,7 +160,7 @@ def select_tags():
         return redirect("/")
     selected_tags = request.args.to_dict(flat=False).get('tag', [])
 
-    obj_ids, tags = query_ripgrep_tags_selection(selected_tags)
+    obj_ids, tags = layer().select_by_tags(selected_tags)
 
     items = []
     for obj_id in obj_ids:
@@ -212,7 +213,7 @@ def show_tag(tag_name):
 def _show_dataobj(dataobj, dataobj_id):
     get_title_id_pairs = lambda x: (x["title"], x["id"])
     titles = list(
-        map(get_title_id_pairs, data.get_items(structured=False, load_content=False))
+        map(get_title_id_pairs, layer().get_items(structured=False, load_content=False))
     )
     js_ext = ""
     if app.config["DATAOBJ_JS_EXTENSION"]:
@@ -229,30 +230,19 @@ def _show_dataobj(dataobj, dataobj_id):
     if request.args.get("raw") == "1":
         return frontmatter.dumps(dataobj)
 
-    backlinks = []
-    if app.config["SEARCH_CONF"]["enabled"]:
-        if app.config["SEARCH_CONF"]["engine"] == "ripgrep":
-            query = f"\|{dataobj_id}]]"
-        else:
-            query = f"|{dataobj_id})]]"
-        backlinks = search(query, strict=True)
+    backlinks = layer().get_back_links(dataobj_id)
 
     # Form for moving data into another folder
     move_form = forms.MoveItemForm()
     move_form.path.choices = [("", "root directory")] + [
-        (pathname, pathname) for pathname in data.get_dirs()
+        (pathname, pathname) for pathname in layer().get_dirs()
     ]
 
     post_title_form = forms.TitleForm()
     post_title_form.title.data = dataobj["title"]
 
     # Get all tags
-    tag_list = get_all_tags()
-    # and the ones present in this dataobj
-    embedded_tags = set()
-    PATTERN = r"(?:^|\n| )#(?:[-_a-zA-ZÀ-ÖØ-öø-ÿА-Яа-я0-9]+)#"
-    for match in re.finditer(PATTERN, dataobj.content):
-        embedded_tags.add(match.group(0).replace("#", "").lstrip())
+    tag_list = layer('tags').get_all_tags()
 
     view_only = os.environ.get("ARCHIVY_VIEW_ONLY", "True").lower() != "false"
     if not view_only:
@@ -270,7 +260,7 @@ def _show_dataobj(dataobj, dataobj_id):
         post_title_form=post_title_form,
         move_form=move_form,
         tag_list=tag_list,
-        embedded_tags=embedded_tags,
+        embedded_tags=[],
         titles=titles,
         js_ext=js_ext,
         icons=app.config["EDITOR_CONF"]["toolbar_icons"],
@@ -279,13 +269,13 @@ def _show_dataobj(dataobj, dataobj_id):
 
 @app.route("/dataobj/<dataobj_id>")
 def show_dataobj(dataobj_id):
-    dataobj = data.get_item(dataobj_id)
+    dataobj = layer().get_item(dataobj_id)
     return _show_dataobj(dataobj, dataobj_id)
 
 
 @app.route("/dataobj/lookup/<key>")
 def lookup_dataobj(key):
-    lookup_result = data.lookup_items(key)
+    lookup_result = layer().lookup_items(key)
 
     if len(lookup_result) == 1:
         return redirect(f"/dataobj/{lookup_result[0]['id']}")
@@ -299,7 +289,7 @@ def lookup_dataobj(key):
 
 @app.route("/dataobj/select/<key>")
 def select_dataobj(key):
-    lookup_result = data.lookup_items(key)
+    lookup_result = layer().lookup_items(key)
 
     if len(lookup_result) == 0:
         flash("Data could not be found!", "error")
@@ -324,7 +314,7 @@ def move_item(dataobj_id):
         flash("No path specified.")
         return redirect(f"/dataobj/{dataobj_id}")
     try:
-        if data.move_item(dataobj_id, form.path.data):
+        if layer().move_item(dataobj_id, form.path.data):
             flash(f"Data successfully moved to {out_dir}.", "success")
             return redirect(f"/dataobj/{dataobj_id}")
         else:
@@ -341,7 +331,7 @@ def move_item(dataobj_id):
 @app.route("/dataobj/delete/<dataobj_id>", methods=["POST"])
 def delete_data(dataobj_id):
     try:
-        data.delete_item(dataobj_id)
+        layer().delete_item(dataobj_id)
     except BaseException:
         flash("Data could not be found!", "error")
         return redirect("/")
@@ -404,7 +394,7 @@ def create_folder():
     form = forms.NewFolderForm()
     if form.validate_on_submit():
         path = Path(form.parent_dir.data.strip("/")) / form.new_dir.data
-        new_path = data.create_dir(str(path))
+        new_path = layer().create_dir(str(path))
         flash("Folder successfully created.", "success")
         return redirect(f"/?path={new_path}")
     flash("Could not create folder.", "error")
@@ -415,7 +405,7 @@ def create_folder():
 def delete_folder():
     form = forms.DeleteFolderForm()
     if form.validate_on_submit():
-        if data.delete_dir(form.dir_name.data):
+        if layer().delete_dir(form.dir_name.data):
             flash("Folder successfully deleted.", "success")
             return redirect("/")
         else:
@@ -430,7 +420,7 @@ def rename_folder():
     form = forms.RenameDirectoryForm()
     if form.validate_on_submit():
         try:
-            new_path = data.rename_folder(form.current_path.data, form.new_name.data)
+            new_path = layer().rename_folder(form.current_path.data, form.new_name.data)
             if not new_path:
                 flash("Invalid input.", "error")
             else:
@@ -448,7 +438,7 @@ def import_folder():
     form = forms.ImportFolderForm()
     if form.validate_on_submit():
         try:
-            success, errors = data.import_folder(
+            success, errors = layer().import_folder(
                 form.current_path.data, form.recursive.data, form.readonly.data, form.force.data)
             if len(success) > 0:
                 flash(f"Successfully imported {len(success)} file(s).", "success")
@@ -468,8 +458,8 @@ def bookmarklet():
 
 # @app.route("/images/<filename>")
 # def serve_image(filename):
-#     if filename and data.valid_image_filename(filename):
-#         image_path = data.image_exists(filename)
+#     if filename and valid_image_filename(filename):
+#         image_path = image_exists(filename)
 #         if image_path:
 #             return send_file(image_path)
 #         else:
@@ -481,8 +471,8 @@ def bookmarklet():
 @app.route("/images/<path:path>")
 def serve_image2(path):
     filename = os.path.split(path)[1]
-    if filename and data.valid_image_filename(filename):
-        image_path = data.image_exists2(path)
+    if filename and valid_image_filename(filename):
+        image_path = image_exists2(path)
         if image_path:
             return send_file(image_path)
         else:
