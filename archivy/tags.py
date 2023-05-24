@@ -1,14 +1,16 @@
 import re
 
 from flask import current_app
-from archivy import helpers, data
+from archivy import helpers
 from tinydb import Query, operations
 from archivy.search import query_ripgrep_tags
-from archivy.data import get_items
+
+
+TAG_REGEX = r"[a-zA-ZÀ-ÖØ-öø-ÿА-Яа-я0-9_-]+"
 
 
 def is_tag_format(tag_name):
-    return re.match("^[a-zA-ZÀ-ÖØ-öø-ÿА-Яа-я0-9_-]+$", tag_name)
+    return re.match("^"+TAG_REGEX+"$", tag_name)
 
 
 def get_all_tags(force=False):
