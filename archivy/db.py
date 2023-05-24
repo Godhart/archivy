@@ -463,9 +463,13 @@ class ArchDB(object):
             all_tags = self._session.query(Tag).all()
             result_tags = sorted([{'tag': t.name, 'count': len(t.documents)} for t in all_tags], key = lambda x: x['tag'].lower())
             return [], result_tags
-        items = self._session.query(Document).all()
+        docs = self._session.query(Document).all()
         selected_tags = [tag.lower() for tag in selected_tags]
-        items = [item for item in items if any(tag.name.lower() in selected_tags for tag in item.tags)]
+        items = []
+        for item in docs:
+            item_tags = [tag.name.lower() for tag in item.tags]
+            if all(tag in item_tags for tag in selected_tags):
+                items.append(item)
         nested_tags = {}
         for item in items:
             for tag in item.tags:
