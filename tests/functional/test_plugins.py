@@ -5,7 +5,6 @@ from flask import request
 from flask_login import current_user
 
 from responses import RequestsMock, GET
-from archivy.helpers import get_max_id, get_db
 
 
 def test_plugin_index(test_app, client: FlaskClient):

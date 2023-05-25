@@ -7,7 +7,6 @@ from flask_login import current_user
 from responses import RequestsMock, GET
 from werkzeug.security import generate_password_hash
 
-from archivy.helpers import get_max_id, get_db
 from archivy.data import get_dirs, create_dir, get_items, get_item
 
 
