@@ -198,21 +198,25 @@ def import_pandoc(
         with open(path, "r", encoding='utf-8') as f:
             lines = f.read()
 
-        subst_path = media_path.replace('\\', '\\\\')
-        subst_expr = f"\!\[[^]]*\]\({subst_path}([^)]+)\)"
         base_path = opts.get('base_path', None)
+        subst_path = media_path.replace('\\', '\\\\')
         if base_path is None:
             base_path = Path(d_path).parent
         else:
             base_path = Path(base_path)
         subst_value = str(Path(media_path).relative_to(base_path))
-        # replace values like ![](<media_path>/<picture_path>) with picture fence and path relative to md file
-        fenced_value = f"""```ssq-pic
-src : {subst_value}\\1
+
+        for subst_expr, conv in (
+            (r"\!\[[^]]*\]\(.*?[\\/]([^\\/]+[\\/][^\\/]+[\\/][^\\/]+.emf)\)", "office"),
+            (r"\!\[[^]]*\]\(.*?[\\/]([^\\/]+[\\/][^\\/]+[\\/][^\\/]+)\)", "pic"),
+        ):
+            # replace values like ![](<media_path>/<picture_path>) with picture fence and path relative to md file
+            fenced_value = f"""```ssq-{conv}
+src : \\1
 inversion: {pic_inversion}
 ```
 """
-        lines = re.sub(subst_expr, fenced_value, lines)
+            lines = re.sub(subst_expr, fenced_value, lines)
 
         if opts.get('import_note', False) is True:
             current_date = datetime.fromtimestamp(time.time()).strftime(r"%Y-%m-%d %H:%M:%S")
