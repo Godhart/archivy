@@ -257,7 +257,7 @@ def to_diagram(
             align = "center"
 
         if auto_fit_width is None:
-            auto_fit_width = get_param(opts, "RENDER_AUTO_FIT_WIDTH", "84%")
+            auto_fit_width = get_param(opts, "RENDER_AUTO_FIT_WIDTH", "100%")
 
         if auto_fit_height is None:
             auto_fit_height = get_param(opts, "RENDER_AUTO_FIT_HEIGHT", "800px")
