@@ -4,8 +4,7 @@ from random import randint
 import click
 
 from archivy import app
-from archivy.helpers import get_max_id
-from archivy.data import get_items
+from archivy.db import layer
 
 
 @click.group()
@@ -22,5 +21,5 @@ def random_number(upper_bound):
 @test_plugin.command()
 def get_random_dataobj_title():
     with app.app_context():
-        dataobjs = get_items(structured=False)
+        dataobjs = layer().get_items(structured=False)
         click.echo(dataobjs[randint(0, len(dataobjs))]["title"])
