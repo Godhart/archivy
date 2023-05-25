@@ -207,7 +207,7 @@ def import_pandoc(
         subst_value = str(Path(media_path).relative_to(base_path))
 
         for subst_expr, conv in (
-            (r"\!\[[^]]*\]\(.*?[\\/]([^\\/]+[\\/][^\\/]+[\\/][^\\/]+.emf)\)", "office"),
+            (r"\!\[[^]]*\]\(.*?[\\/]([^\\/]+[\\/][^\\/]+[\\/][^\\/]+(\.emf|\.wmf))\)", "office"),
             (r"\!\[[^]]*\]\(.*?[\\/]([^\\/]+[\\/][^\\/]+[\\/][^\\/]+)\)", "pic"),
         ):
             # replace values like ![](<media_path>/<picture_path>) with picture fence and path relative to md file
