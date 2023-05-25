@@ -67,7 +67,7 @@ default_handlers.register_handler(
         env         = {},
         engines     = {
             "draw": handler_engine(
-                exts =      [".odg", ".vsd", ".emf"],
+                exts =      [".odg", ".vsd", ".emf", ".wmf"],
                 formats =   ["svg", "png", "pdf"]
             ),
         },
