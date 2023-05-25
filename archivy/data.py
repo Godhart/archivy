@@ -34,7 +34,7 @@ def is_relative_to(sub_path, parent):
 
 
 class Directory:
-    """Tree like file-structure used to build file navigation in Archiv"""
+    """Tree like file-structure used to build file navigation in Archivy"""
 
     def __init__(self, name):
         self.name = name
@@ -78,7 +78,7 @@ def build_dir_tree(path, query_dir, load_content=True):
         # Skip hidden items
         if any(segment[:1] == "." for segment in filepath.relative_to(get_data_dir()).parts):
             continue
-        
+
         cp = Path(filepath)
 
         if any(cp.is_relative_to(hd) for hd in hidden):
