@@ -2,6 +2,7 @@ import frontmatter
 from frontmatter import dumps as _dumps
 from frontmatter import loads as _loads
 from frontmatter import load  as _load
+from frontmatter import Post
 
 import os
 import re
@@ -211,11 +212,11 @@ force : {force}
 def _override_note(data):
 
     if data.get('type', 'note') == 'note':
+        data['type'] = 'note'
         filepath = data.get('_file_path_', None)
         if filepath is not None:
             filepath = Path(filepath)
             relative_path = filepath.relative_to(get_data_dir())
-            data['type'] = 'note'
             data['id'] = str(relative_path).replace(SEP, "--")[:-3]
             data['path'] = str(relative_path.parent).replace(SEP, "/")
             title = relative_path.stem.replace('_', ' ')
@@ -235,25 +236,158 @@ def _override_note(data):
         data['tags'] = []
 
 def load(filepath):
-    data = _load(str(filepath))
+    failed = False
+
+    try:
+        data = _load(str(filepath))
+    except Exception as e:
+        failed = True
+        data = Post(f"""
+Failed to load from '{filepath}' due to exception:
+
+```
+{e}
+```
+""")
+        data['type'] = 'note'
+        data['id'] = "failed"
+        data['path'] = "failed"
+        title = "Failed"
+        data['title'] = title
+        data['_fallback_title_'] = title
+        data['_auto_title_'] = True
+        dt = datetime.fromtimestamp(time.time())
+        data['date'] = dt.strftime(r"%x")
+        data['modified_at'] = dt.strftime(r"%x %H:%M")
+        data['tags'] = []
+
     if data.get('type', 'note') == 'note':
-        if not isinstance(filepath, Path):
-            filepath = Path(filepath)
-        data["_file_path_"] = str(filepath.absolute())
-    _override_note(data)
-    if data.metadata.get("import", False):
-        data.content, errors, _ = _import_foreign(data.content, filepath.relative_to(get_data_dir()).parent)
+        data["_file_path_"] = str(Path(filepath).absolute())
+    try:
+        if not failed:
+            _override_note(data)
+    except Exception as e:
+        failed = True
+        data.content = f"""
+Failed to override note data due to exception:
+
+```
+{e}
+```
+""" + data.content
+        if data.get('type', 'note') == 'note':
+            data['type'] = 'note'
+            data['id'] = "failed"
+            data['path'] = "failed"
+            title = "Failed"
+            data['title'] = title
+            data['_fallback_title_'] = title
+            data['_auto_title_'] = True
+            dt = datetime.fromtimestamp(time.time())
+            data['date'] = dt.strftime(r"%x")
+            data['modified_at'] = dt.strftime(r"%x %H:%M")
+            data['tags'] = []
+
+    if not failed and data.metadata.get("import", False):
+        try:
+            imported_content, errors, _ = _import_foreign(data.content, filepath.relative_to(get_data_dir()).parent)
+            if len(errors) == 0:
+                data.content = imported_content
+            else:
+                data.content = f"""
+Following errors were detected when importing foreign content:
+
+```
+{errors}
+```
+""" + data.content
+        except Exception as e:
+            failed = True
+            data.content = f"""
+Failed to import foreign data due to exception:
+
+```
+{e}
+```
+""" + data.content
     # NOTE: in case of errors fenced code of import section in result is replaced with error message,
     # errors processing is not necessary in this case
+    if failed:
+        data['readonly'] = True
     return data
 
 def loads(text):
-    data = _loads(text)
-    _override_note(data)
-    if data.metadata.get("import", False):
-        data.content, errors, _ = _import_foreign(data.content, None)
+    failed = False
+    try:
+        data = _loads(text)
+    except Exception as e:
+        failed = True
+        data = Post(f"""
+Failed to load due to exception:
+
+```
+{e}
+```
+
+source text:
+``````
+{text}
+``````
+""")
+
+    try:
+        if not failed:
+            _override_note(data)
+        # TODO: actually there is not much to override if source file path is unknown
+    except Exception as e:
+        failed = True
+        data.content = f"""
+Failed to override note data due to exception:
+
+```
+{e}
+```
+""" + data.content
+        if data.get('type', 'note') == 'note':
+            data['type'] = 'note'
+            data['id'] = "failed"
+            data['path'] = "failed"
+            title = "Failed"
+            data['title'] = title
+            data['_fallback_title_'] = title
+            data['_auto_title_'] = True
+            dt = datetime.fromtimestamp(time.time())
+            data['date'] = dt.strftime(r"%x")
+            data['modified_at'] = dt.strftime(r"%x %H:%M")
+            data['tags'] = []
+
+    if not failed and data.metadata.get("import", False):
+        try:
+            imported_content, errors, _ = _import_foreign(data.content, None)
+            if len(errors) == 0:
+                data.content = imported_content
+            else:
+                data.content = f"""
+Following errors were detected when importing foreign content:
+
+```
+{errors}
+```
+""" + data.content
+        except Exception as e:
+            failed = True
+            data.content = f"""
+Failed to import foreign data due to exception:
+
+```
+{e}
+```
+""" + data.content
+
     # NOTE: in case of errors fenced code of import section in result is replaced with error message,
     # errors processing is not necessary in this case
+    if failed:
+        data['readonly'] = True
     return data
 
 def dumps(data, raw=False):
