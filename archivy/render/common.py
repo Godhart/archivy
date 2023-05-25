@@ -210,7 +210,7 @@ class ssr_handlers(object):
         "format"      : (None,    str),
         "src"         : ("",      str),
         "dformat"     : ("",      str),
-        "rawsvg"      : (os.environ.get("RENDER_DEFAULT_RAWSVG", "false").lower() == "true",
+        "rawsvg"      : (os.environ.get("RENDER_DEFAULT_RAWSVG", "true").lower() == "true",
                                   bool),
         "downloadOnly": (False,   bool),
         "downloadName": ("",      str),
