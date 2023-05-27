@@ -46,10 +46,20 @@ def modify_svg(svg, width, height, auto_fit_width, auto_fit_height, background="
         svg_style += "height:" + str(height) + ";"
 
     if auto_fit_width != "":
-        svg_style += "max-width:" + str(auto_fit_width) + ";"
+        if "::" not in auto_fit_width:
+            svg_style += "max-width:" + str(auto_fit_width) + ";"
+        else:
+            min_value, max_value = auto_fit_width.split("::", 1)
+            svg_style += "min-width:" + str(min_value) + ";"
+            svg_style += "max-width:" + str(max_value) + ";"
 
     if auto_fit_height != "":
-        svg_style += "max-height:" + str(auto_fit_height) + ";"
+        if "::" not in auto_fit_height:
+            svg_style += "max-height:" + str(auto_fit_height) + ";"
+        else:
+            min_value, max_value = auto_fit_width.split("::", 1)
+            svg_style += "min-height:" + str(min_value) + ";"
+            svg_style += "max-height:" + str(max_value) + ";"
 
     svg.setAttribute("style", svg_style)
     svg.setAttribute("standalone", "yes")
