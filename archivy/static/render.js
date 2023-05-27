@@ -162,6 +162,83 @@ class Renderer {
         return this.renders()[this.render_map(kind)] !== undefined
     }
 
+    static tuneSvg(element) {
+        // get all SVG objects marked to tune
+        let tune_marker = element.getElementsByClassName("svg-to-tune");
+        if (tune_marker.length == 0) {
+            console.log("svg to tune")
+            return;
+        }
+        let trim_svg   = tune_marker[0].classList.contains("svg-trim");
+        let hacky_trim = tune_marker[0].classList.contains("svg-hacky-trim");
+        if (hacky_trim) {
+            trim_svg = true;
+        }
+        let hacky_back = tune_marker[0].classList.contains("svg-hacky-back");
+        let svgs = element.getElementsByTagName("svg");
+
+        // go through each one and add a viewbox that ensures all children are visible
+        for (let i=0, l=svgs.length; i<l; i++) {
+
+            let svg = svgs[i];
+
+            let box = null;
+            let viewBox = null;
+
+            if (trim_svg) {
+                console.log("trim 1")
+                box = svg.getBBox(); // <- get the visual boundary required to view all children
+                viewBox = [box.x, box.y, box.width, box.height].join(" ");
+            }
+
+            if (hacky_trim) {
+                // EMF/WMF imported SVGs (at least via libre office) may return invalid result for getBBox
+                // This hack may help
+                console.log("trim 2")
+                let bboxes = svg.getElementsByClassName("BoundingBox");
+                if (bboxes.length > 0) {
+                    viewBox = [
+                        bboxes[0].getAttribute("x"),
+                        bboxes[0].getAttribute("y"),
+                        bboxes[0].getAttribute("width"),
+                        bboxes[0].getAttribute("height")
+                    ]
+                }
+            }
+
+            if (trim_svg) {
+                console.log("trim 3")
+                // set viewable area based on value above
+                svg.setAttribute("viewBox", viewBox);
+
+                // set scaling method (preserve aspect ratio, center based)
+                svg.setAttribute("preserveAspectRatio", "xMidYMid");
+                svg.removeAttribute("height");
+                svg.removeAttribute("width");
+            }
+
+            if (hacky_back) {
+                console.log("hacky back")
+                // Symbolator doesn't produces transparent background
+                // This hack helps
+                let rects = svg.getElementsByTagName("rect");
+                for (let j=0, lr=rects.length; j < lr; j++) {
+                    let rect = rects[j];
+                    if (rect.parentNode != svg) {
+                        continue
+                    }
+                    if (rect.getAttribute("width") != "100%") {
+                        continue
+                    }
+                    if (rect.getAttribute("height") != "100%") {
+                        continue
+                    }
+                    rect.setAttribute("fill", "#FFFFFF00")
+                }
+            }
+        }
+    }
+
     static render (kind, objid, content, target, datanode) {
         // console.log(`render(${kind}, ${objid}, ${content}, ${target})`)
         if (this.renders()[this.render_map(kind)] !== undefined) {
@@ -173,6 +250,7 @@ class Renderer {
                         for (let ix = 0; ix < scripts.length; ix++) {
                             eval(scripts[ix].text);
                         }
+                        Renderer.tuneSvg(target)
                     }
                 }
             )
