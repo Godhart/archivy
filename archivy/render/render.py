@@ -109,10 +109,10 @@ def to_diagram(
     DEBUG = get_param(opts, "RENDER_DEBUG", False)
     is_html_output = True   # NOTE: option form R version of script. In this case - always True
     is_latex_output = False # NOTE: same case as above, but this time value is always False
-    auto_fit_width = None
-    auto_fit_height = None
 
     background = opts.get("background", [os.environ.get("RENDER_DEFAULT_BACKGROUND", "#FFFFFF"), "#FFFFFF00"][rawsvg])
+    if "classes" not in opts:   # NOTE: Classes may be updated by diagrams renderers
+        opts["classes"] = []
 
     errors = []
 
@@ -224,57 +224,6 @@ def to_diagram(
     if caption is None:
         caption = ""
 
-    # Placement options
-    if format not in common.IMAGE_FORMATS:
-        # Fallback for non-image format
-        width   = ""
-        height  = ""
-        align   = "center"
-        auto_fit_width = "100%"
-        auto_fit_height = "800px"
-    else:
-        width   = opts.get("width", None)
-        height  = opts.get("height", None)
-        align   = opts.get("align", None)
-        if auto_fit_width is None:
-            auto_fit_width = opts.get("auto-fit-width", None)
-        if auto_fit_height is None:
-            auto_fit_height = opts.get("auto-fit-height", None)
-
-        html_default_out_width = get_param(
-            opts, "html_default_out_width", html_default_out_width_fallback)
-
-        if is_html_output and str(width) == str(html_default_out_width):
-            width = None
-
-        if width is None:
-            width = ""
-
-        if height is None:
-            height = ""
-
-        if align is None:
-            align = "center"
-
-        if auto_fit_width is None:
-            auto_fit_width = get_param(opts, "RENDER_AUTO_FIT_WIDTH", "100%")
-
-        if auto_fit_height is None:
-            auto_fit_height = get_param(opts, "RENDER_AUTO_FIT_HEIGHT", "800px")
-
-    inversion   = opts.get("inversion", "auto").lower()
-
-    if inversion not in ("auto", "opposite", "yes", "true", "no", "false"):
-        raise ValueError(f"'inversion' property should be on of ('auto', 'none', 'yes', 'true', 'no', 'false'), got '{inversion}'!")
-    if inversion in ('yes', 'true'):
-        inversion = "image-inverted"
-    elif inversion in ('no', 'false'):
-        inversion = "image-normal"
-    elif inversion == "auto":
-        inversion = "image-auto"
-    else:
-        inversion = "image-opposite"
-
     # Determine download and target path
     g_path = get_param(opts, "RENDER_GENERATED_PATH", ".dia-generated").replace(".", "_")
     if common.IMG_ROOT_PATH is not None:
@@ -319,6 +268,56 @@ def to_diagram(
                     errors.append(f"Didn't received positive result from service '{service}'!")
         except Exception as e:
             errors.append(f"Failed due to exception: {e}")
+
+    # Placement options
+    # NOTE: those should be after rendering since renderer may update this opts
+    if format not in common.IMAGE_FORMATS:
+        # Fallback for non-image format
+        width   = ""
+        height  = ""
+        align   = "center"
+        auto_fit_width = "100%"
+        auto_fit_height = "800px"
+    else:
+        width   = opts.get("width", None)
+        height  = opts.get("height", None)
+        align   = opts.get("align", None)
+        auto_fit_width = opts.get("auto-fit-width", None)
+        auto_fit_height = opts.get("auto-fit-height", None)
+
+        html_default_out_width = get_param(
+            opts, "html_default_out_width", html_default_out_width_fallback)
+
+        if is_html_output and str(width) == str(html_default_out_width):
+            width = None
+
+        if width is None:
+            width = ""
+
+        if height is None:
+            height = ""
+
+        if align is None:
+            align = "center"
+
+        if auto_fit_width is None:
+            auto_fit_width = get_param(opts, "RENDER_AUTO_FIT_WIDTH", "84%")
+
+        if auto_fit_height is None:
+            auto_fit_height = get_param(opts, "RENDER_AUTO_FIT_HEIGHT", "800px")
+
+    inversion   = opts.get("inversion", "auto").lower()
+
+    if inversion not in ("auto", "opposite", "yes", "true", "no", "false"):
+        raise ValueError(f"'inversion' property should be on of ('auto', 'none', 'yes', 'true', 'no', 'false'), got '{inversion}'!")
+    if inversion in ('yes', 'true'):
+        inversion = "image-inverted"
+    elif inversion in ('no', 'false'):
+        inversion = "image-normal"
+    elif inversion == "auto":
+        inversion = "image-auto"
+    else:
+        inversion = "image-opposite"
 
     if len(errors) > 0:
         with open(d_path, "w", encoding='utf-8') as f:
@@ -371,10 +370,18 @@ def to_diagram(
             div_ref = f'id="{ref}"'
 
         if format in common.IMAGE_FORMATS and format != "pdf":
-            image_style = ""
+            image_class = ""
+            classes = opts.get("classes")
             if inversion != "":
-                image_style = f'class="{inversion}"'
-            result.append(f'<div align="{align}" {div_ref} {image_style}>')
+                classes.append(inversion)
+            classes_unique = []
+            for class_name in classes:
+                # Make unique classes but keep order (first occurrence matters)
+                if class_name not in classes_unique:
+                    classes_unique.append(class_name)
+            if len(classes_unique) > 0:
+                image_class = 'class="'+' '.join(classes_unique)+'"'
+            result.append(f'<div align="{align}" {div_ref} {image_class}>')
             if len(errors) == 0:
                 if rawsvg:
                     try:
