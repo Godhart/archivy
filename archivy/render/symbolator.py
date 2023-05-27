@@ -31,11 +31,12 @@ def render_symbolator(
     # TODO: path for libs
 
     transp = opts.get("transparent", None)
-    if transp is not None and transp.lower() in ("yes", "true"):
-        symbolator_opts += ["-t"]   # TODO: transparency not works
-        extras['transparent'] = True
-    else:
-        extras['transparent'] = False
+    # TODO: transparency not works, it's hacked (via special html classes)
+    # if transp is not None and transp.lower() in ("yes", "true"):
+    #     symbolator_opts += ["-t"]
+    #     extras['transparent'] = True
+    # else:
+    #     extras['transparent'] = False
 
     if opts.get("no-type", False) is True:
         symbolator_opts += ["--no-type"]
@@ -76,6 +77,12 @@ def render_symbolator(
 
     if src_is_temporary:
         os.unlink(src)
+
+    if transp is not None and transp.lower() in ("yes", "true"):
+        if "svg-to-tune" not in opts["classes"]:
+            opts["classes"].append("svg-to-tune")
+        opts["classes"].append("svg-hacky-back")
+
     return result
 
 
