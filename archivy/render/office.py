@@ -56,6 +56,21 @@ def render_office(
         output_path_cleanup=True
     )
 
+    hacky_trim = opts.get("trim-hacky", None) is True \
+        or (src[-4:].lower() in (".emf", ".wmf") and opts.get("trim", None) is not False)
+
+    if hacky_trim or opts.get("trim", None) is True:
+        if "svg-to-tune" not in opts["classes"]:
+            opts["classes"].append("svg-to-tune")
+        if hacky_trim:
+            opts["classes"].append("svg-hacky-trim")
+        else:
+            opts["classes"].append("svg-trim")
+        opts["width"] = ""
+        opts["height"] = ""
+        opts["auto-fit-width"] = "500px::84%"
+        opts["auto-fit-height"] = "800px"
+
     return result
 
 
@@ -63,7 +78,10 @@ default_handlers.register_handler(
     handler_info(
         service     = "office",
         alias       = "ofc",
-        opts        = {},
+        opts        = {
+            "trim": (None, bool),
+            "trim-hacky": (None, bool)
+        },
         env         = {},
         engines     = {
             "draw": handler_engine(
