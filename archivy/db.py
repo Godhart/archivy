@@ -288,7 +288,7 @@ class ArchDB(object):
 
         return True
 
-    def _remove_path(self, session, path, remove_tags=False, not_exist_ok=False, remove_parent = True):
+    def _remove_path(self, session, path, remove_tags=False, not_exist_ok=False, remove_parent=False):
         folder = (
             session.query(Folder)
             .filter(Folder.path == str(Path(path).relative_to(get_data_dir())))
