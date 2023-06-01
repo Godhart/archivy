@@ -38,16 +38,14 @@ from archivy.data import is_relative_to, Directory, load_data
 from archivy.db_models import Base
 from archivy.db_models import Folder, Document, Tag, Link
 
-from archivy.search import search
+from watchdog.observers import Observer
+from watchdog.events import PatternMatchingEventHandler
+
+from archivy.hacks import Hacks
+get_data_dir = Hacks.get_data_dir
 
 
 DB = {}
-
-
-# FIXME: ugly hack to make sure the app path is evaluated at the right time
-def get_data_dir():
-    """Returns the directory where dataobjs are stored"""
-    return Path(current_app.config["USER_DIR"]) / "data"
 
 
 class ArchDB(object):
@@ -77,6 +75,56 @@ class ArchDB(object):
         else:
             DB['stored'] = self
 
+        self._fs_watchdog = None
+        self._fs_event_handler = None
+
+    def __del__(self):
+        if self.latest:
+            # Stop FS watchdog
+            if self._fs_watchdog is not None:
+                self._fs_watchdog.stop()
+                self._fs_watchdog.join()
+                self._fs_watchdog = None
+
+    def _fs_start_watchdog(self):
+        # TODO: create and start FS watchdog
+        patterns = "*.md" # file patterns we want to handle
+        ignore_patterns = "" # patterns that we don’t want to handle
+        ignore_directories = False # True to be notified for regular files (not for directories)
+        case_sensitive = True # made the patterns “case sensitive”
+        self._fs_event_handler = PatternMatchingEventHandler(
+            patterns,
+            ignore_patterns,
+            ignore_directories,
+            case_sensitive)
+
+        self._fs_event_handler.on_created = self._fs_on_created
+        self._fs_event_handler.on_deleted = self._fs_on_deleted
+        self._fs_event_handler.on_modified = self._fs_on_modified
+        self._fs_event_handler.on_moved = self._fs_on_moved
+
+        # create observer to monitor filesystem for changes
+        # that will be handled by the event handler
+        fs_watchdog_path = str(get_data_dir()) # data directory
+        go_recursively = True # allow to catch all the events in the subdirs of current dir
+        self._fs_watchdog = Observer()
+        # call the schedule method on Observer object
+        self._fs_watchdog.schedule(self._fs_event_handler, fs_watchdog_path, recursive=go_recursively)
+        # start the observer thread to get all the events.
+        self._fs_watchdog.start()
+
+    def _fs_on_created(self, event):
+        self._on_fs_change("add", event.src_path, None)
+
+    def _fs_on_moved(self, event):
+        self._on_fs_change("move", event.src_path, event.dest_path)
+
+    def _fs_on_modified(self, event):
+        self._on_fs_change("modify", event.src_path, None)
+
+    def _fs_on_deleted(self, event):
+        self._on_fs_change("delete", event.src_path, None)
+
     def session(self):
         Session = sessionmaker()
         Session.configure(bind=self._engine)
@@ -84,10 +132,11 @@ class ArchDB(object):
 
     def update(self, force=False):
         if self._db_not_exists:
+            self._db_not_exists = False
             _session = self.session()
             with _session.begin():
-                self._db_not_exists = False
                 self._update_db(_session)
+            self._fs_start_watchdog()
 
     def _doc_to_post(self, doc: Document, load_content = True):
         content = ""
@@ -138,7 +187,7 @@ class ArchDB(object):
             content     = post.content,
         )
         return doc
-    
+
     def _add_folder(self, session, folder_path):
         folder_path = Path(folder_path)
         folder = Folder(
@@ -187,7 +236,7 @@ class ArchDB(object):
             parent_folder = session.query(Folder).filter(Folder.path == str(path.relative_to(get_data_dir()).parent)).one_or_none()
             if parent_folder is None:
                 raise ValueError(f"Can't find parent folder for {path} in DB!")
- 
+
         dir_data = data.build_dir_tree(start_name, path, load_content=True)
 
         # files_scan is object with:
@@ -472,7 +521,7 @@ class ArchDB(object):
 
     def _on_fs_change(self, change_kind, src_path, dst_path):
         if self._db_not_exists:
-            self.update()
+            return
         else:
             _session = self.session()
             with _session.begin():
@@ -665,7 +714,7 @@ class ArchDB(object):
         fs_result = data.import_folder(folder_path, recursive, readonly, force)
         self.update()
         _session = self.session()
-        
+
         result = [], fs_result[1]
         with _session.begin():
             for path in fs_result[0]:
