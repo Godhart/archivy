@@ -18,16 +18,13 @@ from archivy.render.pandoc import import_pandoc
 from archivy.render.common import to_abs_path
 import archivy.render.common as common
 
+from archivy.hacks import Hacks
+get_data_dir = Hacks.get_data_dir
+
 SEP = os.path.join("a", "b")[1]
 
 
 Post = frontmatter.Post
-
-
-# FIXME: ugly hack to make sure the app path is evaluated at the right time
-def get_data_dir():
-    """Returns the directory where dataobjs are stored"""
-    return Path(current_app.config["USER_DIR"]) / "data"
 
 
 class importers(object):

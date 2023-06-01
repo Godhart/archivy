@@ -13,14 +13,11 @@ from werkzeug.datastructures import FileStorage
 
 from archivy.search import remove_from_index
 
+from archivy.hacks import Hacks
+get_data_dir = Hacks.get_data_dir
+
 
 SEP = os.path.join("a", "b")[1]
-
-
-# FIXME: ugly hack to make sure the app path is evaluated at the right time
-def get_data_dir():
-    """Returns the directory where dataobjs are stored"""
-    return Path(current_app.config["USER_DIR"]) / "data"
 
 
 def is_relative_to(sub_path, parent):

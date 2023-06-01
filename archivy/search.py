@@ -7,10 +7,9 @@ from flask import current_app
 
 from archivy.helpers import get_elastic_client
 
-# FIXME: ugly hack to make sure the app path is evaluated at the right time
-def get_data_dir():
-    """Returns the directory where dataobjs are stored"""
-    return Path(current_app.config["USER_DIR"]) / "data"
+from archivy.hacks import Hacks
+get_data_dir = Hacks.get_data_dir
+
 
 # Example command ["rg", RG_MISC_ARGS, RG_FILETYPE, RG_REGEX_ARG, query, str(get_data_dir())]
 #  rg -il -t md -e query files
