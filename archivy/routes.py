@@ -340,7 +340,11 @@ def delete_data(dataobj_id):
         flash("Data could not be found!", "error")
         return redirect("/")
     flash("Data deleted!", "success")
-    return redirect("/")
+    parent_path = Path(dataobj_id.replace("--", "/")).parent
+    if parent_path == "":
+        return redirect("/")
+    else:
+        return redirect(f"/?path={parent_path}/")
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -409,9 +413,14 @@ def create_folder():
 def delete_folder():
     form = forms.DeleteFolderForm()
     if form.validate_on_submit():
-        if layer().delete_dir(form.dir_name.data):
+        folder_path = form.dir_name.data
+        if layer().delete_dir(folder_path):
             flash("Folder successfully deleted.", "success")
-            return redirect("/")
+            parent_path = Path(folder_path).parent
+            if parent_path == "":
+                return redirect("/")
+            else:
+                return redirect(f"/?path={parent_path}/")
         else:
             flash("Folder not found.", "error")
             return redirect(request.referrer or "/", 404)
