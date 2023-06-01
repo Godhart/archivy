@@ -33,7 +33,7 @@ from frontmatter import Post
 from flask import current_app
 
 from archivy import data, tags
-from archivy.data import is_relative_to, Directory
+from archivy.data import is_relative_to, Directory, load_data
 
 from archivy.db_models import Base
 from archivy.db_models import Folder, Document, Tag, Link
@@ -64,36 +64,30 @@ class ArchDB(object):
         self._sqlite_file_path = sqlite_filepath
 
         if sqlite_filepath == ":memory:":
-            engine = create_engine("sqlite:///file:latest?mode=memory&cache=shared&uri=true&check_same_thread=False") # , echo=True, future=True
+            engine = create_engine("sqlite:///file:latest?mode=memory&cache=shared&uri=true") # , echo=True, future=True
         else:
-            engine = create_engine(f"sqlite:///{sqlite_filepath}?check_same_thread=False")
-        # TODO: check_same_thread is quick and unsafe hack. Use scoped sessions or Flask-SQLAlchemy
+            engine = create_engine(f"sqlite:///{sqlite_filepath}")
 
         # engine = create_engine(f"sqlite:///{sqlite_filepath}")
         Base.metadata.create_all(engine)
-        Session = sessionmaker()
-        Session.configure(bind=engine)
-        self._session = Session()
+        self._engine = engine
 
         if latest is True:
             DB['latest'] = self
         else:
             DB['stored'] = self
 
-    @property
     def session(self):
-        return self._session
+        Session = sessionmaker()
+        Session.configure(bind=self._engine)
+        return Session()
 
     def update(self, force=False):
         if self._db_not_exists:
-            self._db_not_exists = False
-            self._update_db()
-
-    def commit(self):
-        self._session.commit()
-
-    def flush(self):
-        self._session.flush()
+            _session = self.session()
+            with _session.begin():
+                self._db_not_exists = False
+                self._update_db(_session)
 
     def _doc_to_post(self, doc: Document, load_content = True):
         content = ""
@@ -116,73 +110,271 @@ class ArchDB(object):
         )
         return post
 
-    def _update_db(self, path=None):
+    def _post_to_doc(self, post, folder_path=None):
+        doc_name = post.metadata["id"].split("--")[-1]
+        try:
+            timestamp   = int(datetime.strptime(post.metadata["modified_at"], r"%x %H:%M").timestamp())
+        except Exception as e:
+            timestamp = 0
+        extra_data = {
+            "tags": post.metadata.get('tags', []),
+        }
+
+        if folder_path is None:
+            folder_path = Path(post["_file_path_"]).parent
+
+        doc = Document(
+            name        = doc_name,
+            path        = str((folder_path / (doc_name+".md")).relative_to(get_data_dir())),
+            doc_id      = post.metadata["id"],
+            type        = post.metadata["type"],
+            title       = post.metadata["title"],
+            timestamp   = timestamp,
+            date        = post.metadata["date"],
+            modified_at = post.metadata["modified_at"],
+            readonly    = post.metadata.get("import", False),
+            import_en   = post.metadata.get("import", False),
+            data_yaml   = yaml.safe_dump(extra_data),
+            content     = post.content,
+        )
+        return doc
+    
+    def _add_folder(self, session, folder_path):
+        folder_path = Path(folder_path)
+        folder = Folder(
+            name = folder_path.parts[-1],
+            path = str(folder_path.relative_to(get_data_dir())),
+        )
+        session.add(folder)
+        return folder
+
+    def _add_doc(self, session, path):
+        doc = (
+            session.query(Document)
+            .filter(Document.path == str(Path(path).relative_to(get_data_dir())))
+            .one_or_none()
+        )
+        if doc is not None:
+            raise ValueError(f"Document for path '{path}' already exists in database!")
+
+        folder = (
+            session.query(Folder)
+            .filter(Folder.path == str(Path(path).parent.relative_to(get_data_dir())))
+            .one_or_none()
+        )
+        new_folder = folder is None
+        if new_folder:
+            folder_path = Path(path).parent
+            folder = self._add_folder(session, folder_path)
+
+        post = load_data(path)
+        doc = self._post_to_doc(post)
+        session.add(doc)
+        folder.documents.append(doc)
+        return doc
+
+    def _update_db(self, session, path=None):
         if path is None:
+            is_root = True
             start_name = "root"
             path = get_data_dir()
         else:
+            is_root = False
             start_name = Path(path).parts[-1]
             path = Path(path)
-        dir = data.build_dir_tree(start_name, path, load_content=True)
+
+        if not is_root:
+            parent_folder = session.query(Folder).filter(Folder.path == str(path.relative_to(get_data_dir()).parent)).one_or_none()
+            if parent_folder is None:
+                raise ValueError(f"Can't find parent folder for {path} in DB!")
+ 
+        dir_data = data.build_dir_tree(start_name, path, load_content=True)
 
         # files_scan is object with:
         # - name of dir
         # - child_files as list with result of frontmatter load
         # - child_dirs as dict of same objects
 
-        def _add_dir(dir, path: Path):
-            folder = Folder(
-                name = dir.name,
-                path = str(path.relative_to(get_data_dir())),
-            )
-            for cf in dir.child_files:
-                doc_name = cf.metadata["id"].split("--")[-1]
-                try:
-                    timestamp   = int(datetime.strptime(cf.metadata["modified_at"], r"%x %H:%M").timestamp())
-                except Exception as e:
-                    timestamp = 0
-                extra_data = {
-                    "tags": cf.metadata.get('tags', []),
-                }
-
-                doc = Document(
-                    name        = doc_name,
-                    path        = str((path / doc_name).relative_to(get_data_dir())),
-                    doc_id      = cf.metadata["id"],
-                    type        = cf.metadata["type"],
-                    title       = cf.metadata["title"],
-                    timestamp   = timestamp,
-                    date        = cf.metadata["date"],
-                    modified_at = cf.metadata["modified_at"],
-                    readonly    = cf.metadata.get("import", False),
-                    import_en   = cf.metadata.get("import", False),
-                    data_yaml   = yaml.safe_dump(extra_data),
-                    content     = cf.content,
-                )
-                self._session.add(doc)
+        def _add_folder_item(dir_data, path: Path):
+            folder = self._add_folder(session, path)
+            for cf in dir_data.child_files:
+                doc = self._post_to_doc(cf, path)
+                session.add(doc)
                 folder.documents.append(doc)
 
-            for cd in dir.child_dirs.values():
-                subfolder = _add_dir(cd, path / cd.name)
+            for cd in dir_data.child_dirs.values():
+                subfolder = _add_folder_item(cd, path / cd.name)
                 folder.folders.append(subfolder)
 
-            self._session.add(folder)
             return folder
 
-        root = _add_dir(dir, path)
-        self.flush()
+        start_folder = _add_folder_item(dir_data, path)
+        session.flush()
 
-        self._update_links([root], recurse=True)
-        self._update_tags([root], recurse=True)
-        self.flush()
+        if not is_root:
+            parent_folder.folders.append(start_folder)
+            session.flush()
 
+        self._update_links(session, [start_folder], recurse=True)
+        self._update_tags(session, [start_folder], recurse=True)
+        session.flush()
 
-    def _update_links(self, objs, recurse=False):
+    def _remove_doc(self, session, doc: Document, remove_tags=False, remove_parent=False):
+        # Get list of tags that could become empty after doc removal
+        if remove_tags:
+            check_tags = list(doc.tags)
+        else:
+            check_tags = []
+
+        # Remove links
+        links = session.query(Link).filter(Link.source_id == doc.doc_id).all()
+        for link in links:
+            session.delete(link)
+
+        links = list(doc.refbacks)
+        for link in links:
+            session.delete(link)
+
+        # Remove blobs
+        blobs = list(doc.blob)
+        for blob in blobs:
+            session.delete(blob)
+
+        parent = doc.folder
+        session.delete(doc)
+
+        # Remove empty folders
+        if remove_parent:
+            while parent is not None:
+                if len(parent.documents) > 0:
+                    parent = None
+                    break
+                if len(parent.folders) > 0:
+                    parent = None
+                    break
+                next_parent = parent.parent
+                session.delete(parent)
+                parent = next_parent
+
+        # Remove empty tags
+        if remove_tags:
+            for t in check_tags:
+                if (t.documents) > 0:
+                    continue
+                session.delete(t)
+
+        return True
+
+    def _remove_folder(self, session, folder: Document, remove_tags=False, remove_parent=False):
+        for doc in list(folder.documents):
+            self._remove_doc(session, doc, remove_tags=remove_tags, remove_parent=remove_parent)
+        for subfolder in list(folder.folders):
+            self._remove_folder(session, subfolder, remove_tags, remove_parent=remove_parent)
+        parent = folder.parent
+        session.delete(folder)
+
+        # Remove empty folders
+        if remove_parent:
+            while parent is not None:
+                if len(parent.documents) > 0:
+                    parent = None
+                    break
+                if len(parent.folders) > 0:
+                    parent = None
+                    break
+                next_parent = parent.parent
+                session.delete(parent)
+                parent = next_parent
+
+        return True
+
+    def _remove_path(self, session, path, remove_tags=False, not_exist_ok=False, remove_parent = True):
+        folder = (
+            session.query(Folder)
+            .filter(Folder.path == str(Path(path).relative_to(get_data_dir())))
+            .one_or_none()
+        )
+        if folder is not None:
+            result = self._remove_folder(session, folder, remove_tags, remove_parent = remove_parent)
+            return result
+
+        doc = (
+            session.query(Document)
+            .filter(Document.path == str(Path(path).relative_to(get_data_dir())))
+            .one_or_none()
+        )
+        if doc is not None:
+            result = self._remove_doc(session, doc, remove_tags, remove_parent = remove_parent)
+            return result
+
+        if not_exist_ok:
+            return True
+
+        raise ValueError(f"Path '{path}' wasn't found in database!")
+
+    def _add_path(self, session, path):
+        # make sure dst_path is not in database
+        existing_folder = session.query(Folder).filter(Folder.path == str(Path(path).relative_to(get_data_dir()))).one_or_none()
+        if existing_folder is not None:
+            existing_doc = session.query(Document).filter(Document.path == str(Path(path).relative_to(get_data_dir()))).one_or_none()
+        else:
+            existing_doc = None
+
+        if existing_folder is not None or existing_doc is not None:
+            raise ValueError(f"Object for path {path} is already in database!")
+
+        path = Path(path)
+        if path.is_dir():
+            self._update_db(session, path)
+            return True
+        else:
+            doc = self._add_doc(session, path)
+            session.flush()
+            self._update_links(session, [doc])
+            self._update_tags(session, [doc])
+            session.flush()
+            return True
+
+    def _move_path(self, session, src_path, dst_path, remove_parent=False):
+        # NOTE: it's easier to remove then re-add
+        folder = session.query(Folder).filter(Folder.path == str(Path(src_path).relative_to(get_data_dir()))).one_or_none()
+        if folder is None:
+            doc = session.query(Document).filter(Document.path == str(Path(src_path).relative_to(get_data_dir()))).one_or_none()
+        else:
+            doc = None
+        if folder is None and doc is None:
+            raise ValueError(f"Object for path {src_path} wasn't found in database!")
+        if doc is None:
+            target_path = dst_path
+        else:
+            target_path = Path(dst_path) / Path(src_path).parts[-1]
+
+        self._remove_path(session, src_path, remove_parent=remove_parent)
+        session.begin_nested()
+        try:
+            self._add_path(session, target_path)
+        except ValueError as e:
+            session.rollback()
+            return False
+        return True
+
+    def _update_path(self, session, path, not_exist_ok=False):
+        # NOTE: it's easier to remove then re-add
+        self._remove_path(session, path, not_exist_ok=not_exist_ok)
+        session.begin_nested()
+        try:
+            self._add_path(session, path)
+        except ValueError as e:
+            session.rollback()
+            return False
+        return True
+
+    def _update_links(self, session, objs, recurse=False):
         for obj in objs:
             if isinstance(obj, Folder):
-                self._update_links(obj.documents)
+                self._update_links(session, obj.documents)
                 if recurse:
-                    self._update_links(obj.folders, recurse)
+                    self._update_links(session, obj.folders, recurse)
             elif not isinstance(obj, Document):
                 return  # TODO: raise error
             else:
@@ -190,11 +382,11 @@ class ArchDB(object):
 
                 # Remove existing links
                 obj_refs = (
-                    self._session.query(Link)
+                    session.query(Link)
                     .filter(Link.source_id == obj.ID)
                     .all())
                 for link in obj_refs:   # TODO: use 'list(obj.refs)' after fixing DB
-                    self._session.delete[link]
+                    session.delete[link]
 
                 # Find all links within object
                 links_search = re.finditer(r"\[\[(?:([^|\]]+)\|)*(@?[^|#\]]+?)(#[^|\]]+)*\]\]", text)
@@ -206,14 +398,14 @@ class ArchDB(object):
                     # look for referred objects, and update their refbacks
                     if target_id[:1] != "@":
                         targets = (
-                            self._session.query(Document)
+                            session.query(Document)
                             .filter(Document.doc_id == target_id)
                             .all()
                         )
                     else:
                         target_pattern = "%--" + target_id[1:]
                         targets = (
-                            self._session.query(Document)
+                            session.query(Document)
                             .filter(or_(Document.doc_id.like(target_pattern), Document.doc_id == target_id[1:]))
                             .all()
                         )
@@ -228,17 +420,17 @@ class ArchDB(object):
                             objid = target_id,
                             section = m.groups()[2] or "",
                         )
-                        self._session.add(link)
+                        session.add(link)
                         t.refbacks.append(link)
                         pass
 
 
-    def _update_tags(self, objs, recurse=False):
+    def _update_tags(self, session, objs, recurse=False):
         for obj in objs:
             if isinstance(obj, Folder):
-                self._update_tags(obj.documents)
+                self._update_tags(session, obj.documents)
                 if recurse:
-                    self._update_tags(obj.folders, recurse)
+                    self._update_tags(session, obj.folders, recurse)
             elif not isinstance(obj, Document):
                 return  # TODO: raise error
             else:
@@ -257,59 +449,74 @@ class ArchDB(object):
                 for tag_name in obj_tags:
                     # create tag if necessary
                     tag = (
-                        self._session.query(Tag)
+                        session.query(Tag)
                         .filter(Tag.name == tag_name)
                         .one_or_none()
                     )
                     if tag is None:
                         tag = Tag(name = tag_name)
-                        self._session.add(tag)
-                        self.flush()
+                        session.add(tag)
+                        session.flush()
                     obj.tags.append(tag)
 
-                self.flush()        # flush to update tags and relationships
+                session.flush()        # flush to update tags and relationships
 
                 # Remove empty tags
                 deleted = False
                 for tag in previous_tags:
                     if len(tag.documents) == 0:
-                        self._session.delete(tag)
+                        session.delete(tag)
                         deleted = True
                 if deleted:
-                    self.flush()    # flush if at least one tag were deleted
+                    session.flush()    # flush if at least one tag were deleted
 
-    def on_fs_change(self, path, changes):
-        # TODO: Update DB record(s)
-        pass
+    def _on_fs_change(self, change_kind, src_path, dst_path):
+        if self._db_not_exists:
+            self.update()
+        else:
+            _session = self.session()
+            with _session.begin():
+                if change_kind == "add":
+                    self._add_path(_session, src_path)
+                elif change_kind == "modify":
+                    self._update_path(_session, src_path)
+                elif change_kind == "move":
+                    self._move_path(_session, src_path, dst_path)
+                elif change_kind == "delete":
+                    self._remove_path(_session, src_path)
+                else:
+                    raise ValueError("Change kind value should be on of 'add', 'modify', 'move', 'delete'!")
 
     def build_dir_tree(self, path, query_dir, load_content=True):
-        self.update()
         """
         args:
             path        - last name of path segment
             query_dir   - absolute path to start from
         """
-        folder = (
-            self._session.query(Folder)
-            .filter(Folder.path == str(Path(query_dir).relative_to(get_data_dir())))
-            .one_or_none()
-        )
+        self.update()
+        _session = self.session()
+        with _session.begin():
+            folder = (
+                _session.query(Folder)
+                .filter(Folder.path == str(Path(query_dir).relative_to(get_data_dir())))
+                .one_or_none()
+            )
 
-        def _dig_dir(dir: Directory, folder: Folder):
-            for doc in folder.documents:
-                dir.child_files.append(self._doc_to_post(doc, load_content))
-            for subfolder in folder.folders:
-                subdir = Directory(subfolder.name)
-                _dig_dir(subdir, subfolder)
-                dir.child_dirs[subfolder.name] = subdir
+            def _dig_dir(dir_data: Directory, folder: Folder):
+                for doc in folder.documents:
+                    dir_data.child_files.append(self._doc_to_post(doc, load_content))
+                for subfolder in folder.folders:
+                    subdir = Directory(subfolder.name)
+                    _dig_dir(subdir, subfolder)
+                    dir_data.child_dirs[subfolder.name] = subdir
 
-        if folder is None:
-            raise FileNotFoundError
-        else:
-            result = Directory(folder.name)
-            _dig_dir(result, folder)
+            if folder is None:
+                raise FileNotFoundError
+            else:
+                result = Directory(folder.name)
+                _dig_dir(result, folder)
 
-        return result
+            return result
 
     def get_items(self,
         collections=[], path="", structured=True, json_format=False, load_content=True
@@ -329,8 +536,6 @@ class ArchDB(object):
         """
         self.update()
 
-        # old_result = data.get_items(collections, path, structured, json_format, load_content)
-
         data_dir = get_data_dir()
         query_dir = data_dir / path
         if not is_relative_to(query_dir, data_dir) or not query_dir.exists():
@@ -340,107 +545,215 @@ class ArchDB(object):
             result = self.build_dir_tree(path, query_dir)
             return result
         else:
-            folder = (
-                self._session.query(Folder)
-                .filter(Folder.path == str(Path(query_dir).relative_to(data_dir)))
-                .one_or_none()
-            )
+            _session = self.session()
+            with _session.begin():
+                folder = (
+                    _session.query(Folder)
+                    .filter(Folder.path == str(Path(query_dir).relative_to(data_dir)))
+                    .one_or_none()
+                )
 
-            def _dig_dir(result: list, folder: Folder):
-                for doc in folder.documents:
-                    post = self._doc_to_post(doc, load_content)
-                    post['fullpath'] = str((data_dir / doc.path).parent.relative_to(query_dir))
-                    if len(collections) == 0 or any(
-                        [collection == post['type'] for collection in collections]
-                    ):
-                        if json_format:
-                            post_dict = post.__dict__
-                            # remove unnecessary yaml handler
-                            post_dict.pop("handler")
-                            result.append(post_dict)
-                        else:
-                            result.append(post)
+                def _dig_dir(result: list, folder: Folder):
+                    for doc in folder.documents:
+                        post = self._doc_to_post(doc, load_content)
+                        post['fullpath'] = str((data_dir / doc.path).parent.relative_to(query_dir))
+                        if len(collections) == 0 or any(
+                            [collection == post['type'] for collection in collections]
+                        ):
+                            if json_format:
+                                post_dict = post.__dict__
+                                # remove unnecessary yaml handler
+                                post_dict.pop("handler")
+                                result.append(post_dict)
+                            else:
+                                result.append(post)
 
-                for subfolder in folder.folders:
-                    _dig_dir(result, subfolder)
+                    for subfolder in folder.folders:
+                        _dig_dir(result, subfolder)
 
-            if folder is None:
-                raise FileNotFoundError
-            else:
-                result = []
-                _dig_dir(result, folder)
+                if folder is None:
+                    raise FileNotFoundError
+                else:
+                    result = []
+                    _dig_dir(result, folder)
 
-        return result
+            return result
 
     def create(self, contents, title, path=""):
-        return data.create(contents, title, path)
-        # TODO: update DB in case of success
+        self.update()
+        _session = self.session()
+        with _session.begin():
+            result = data.create(contents, title, path)
+            if result is not False:
+                self._add_path(_session, result)
+            return result
 
     def get_item(self, dataobj_id):
         self.update()
-        item = (
-            self._session.query(Document)
-            .filter(Document.doc_id == dataobj_id)
-            .one_or_none()
-        )
-        if item is None:
-            return None
-        post = self._doc_to_post(item)
-        post['fullpath'] = str(get_data_dir() / item.path)
-        post['dir'] = str(Path(item.path).parent)
-        if post['dir'] in (".", "/"):
-            post['dir'] = ""
-        return post
+        _session = self.session()
+        with _session.begin():
+            item = (
+                _session.query(Document)
+                .filter(Document.doc_id == dataobj_id)
+                .one_or_none()
+            )
+            if item is None:
+                return None
+            post = self._doc_to_post(item)
+            post['fullpath'] = str(get_data_dir() / item.path)
+            post['dir'] = str(Path(item.path).parent)
+            if post['dir'] in (".", "/"):
+                post['dir'] = ""
+            return post
 
     def lookup_items(self, key):
         self.update()
-        items = (
-            self._session.query(Document)
-            .filter(or_(Document.doc_id.like("%--" + key), Document.doc_id == key))
-            .all()
-        )
-        result = [{
-            'id': item.doc_id,
-            'path': item.path
-        } for item in items]
-        return result
+        _session = self.session()
+        with _session.begin():
+            items = (
+                _session.query(Document)
+                .filter(or_(Document.doc_id.like("%--" + key), Document.doc_id == key))
+                .all()
+            )
+            result = [{
+                'id': item.doc_id,
+                'path': item.path
+            } for item in items]
+            return result
 
     def move_item(self, dataobj_id, new_path):
-        # TODO: remove item from database
-        return data.move_item(dataobj_id, new_path)
+        self.update()
+        _session = self.session()
+        with _session.begin():
+            doc = _session.query(Document).filter(Document.doc_id == dataobj_id).one_or_none()
+            if doc is None:
+                raise ValueError(f"Document with ID '{dataobj_id}' is not found in database!")
+            src_path = get_data_dir() / doc.path
+            result = data.move_item(dataobj_id, new_path)
+            if result is False:
+                db_result = self._remove_path(_session, src_path, remove_parent=False)
+            else:
+                db_result = self._move_path(_session, src_path, get_data_dir() / new_path, remove_parent=False)
+        if result is False:
+            return result
+        elif db_result is False:
+            raise ValueError(f"Failed to updated DB!")
+        return result
 
     def rename_folder(self, old_path, new_name):
-        # TODO: remove folder with it's children from database
-        return data.rename_folder(old_path, new_name)
+        old_path = old_path.strip("/")
+        new_name = new_name.strip("/")
+        self.update()
+        _session = self.session()
+        with _session.begin():
+            folder = _session.query(Folder).filter(Folder.path == old_path).one_or_none()
+            if folder is None:
+                raise ValueError(f"Folder with path 'P{old_path}' is not found in database!")
+            result = data.rename_folder(old_path, new_name)
+            if result is False:
+                db_result = self._remove_path(_session, get_data_dir() / old_path)
+            else:
+                db_result = self._move_path(_session, get_data_dir() / old_path, get_data_dir() / result)
+        if result is False:
+            return result
+        elif db_result is False:
+            raise ValueError(f"Failed to updated DB!")
+        return result
 
     def import_folder(self, folder_path, recursive, readonly, force):
-        return data.import_folder(folder_path, recursive, readonly, force)
-        # NOTE: database update would be triggered by FS change
+        folder_path = folder_path.strip("/")
+        fs_result = data.import_folder(folder_path, recursive, readonly, force)
+        self.update()
+        _session = self.session()
+        
+        result = [], fs_result[1]
+        with _session.begin():
+            for path in fs_result[0]:
+                if self._update_path(_session, get_data_dir() / path, not_exist_ok=True):
+                    result[0].append(path)
+                else:
+                    result[1].append(path)
+        return result
 
     def delete_item(self, dataobj_id):
-        # TODO: remove item from database
-        return data.delete_item(dataobj_id)
+        self.update()
+        _session = self.session()
+        with _session.begin():
+            doc = _session.query(Document).filter(Document.doc_id == dataobj_id).one_or_none()
+            if doc is None:
+                raise ValueError(f"Document with ID '{dataobj_id}' is not found in database!")
+            result = data.delete_item(dataobj_id)
+            self._remove_path(_session, get_data_dir() / doc.path)
+        return result
 
     def update_item_md(self, dataobj_id, new_content):
-        # TODO: remove item from database
-        return data.update_item_md(dataobj_id, new_content)
+        self.update()
+        _session = self.session()
+        with _session.begin():
+            doc = _session.query(Document).filter(Document.doc_id == dataobj_id).one_or_none()
+            if doc is None:
+                raise ValueError(f"Document with ID '{dataobj_id}' is not found in database!")
+            result = data.update_item_md(dataobj_id, new_content)
+            if result is not False:
+                db_result = self._update_path(_session, get_data_dir() / doc.path)
+            else:
+                db_result = False
+        if result is False or db_result is False:
+            return False
+        return result
 
     def update_item_frontmatter(self, dataobj_id, new_frontmatter):
-        # TODO: remove item from database
-        return data.update_item_frontmatter(dataobj_id, new_frontmatter)
+        self.update()
+        _session = self.session()
+        with _session.begin():
+            doc = _session.query(Document).filter(Document.doc_id == dataobj_id).one_or_none()
+            if doc is None:
+                raise ValueError(f"Document with ID '{dataobj_id}' is not found in database!")
+            result = data.update_item_frontmatter(dataobj_id, new_frontmatter)
+            if result is not False:
+                db_result = self._update_path(_session, get_data_dir() / doc.path)
+            else:
+                db_result = False
+        if result is False or db_result is False:
+            return False
+        return result
 
     def get_dirs(self):
         self.update()
-        dirnames = [folder.path for folder in self._session.query(Folder).all()]
-        return dirnames
+        _session = self.session()
+        with _session.begin():
+            dirnames = [folder.path for folder in _session.query(Folder).all()]
+            return dirnames
 
     def create_dir(self, name):
-        # TODO: add dir into database
-        return data.create_dir()
+        name = name.strip("/")
+        self.update()
+        _session = self.session()
+        with _session.begin():
+            folder = _session.query(Folder).filter(Folder.path == name).one_or_none()
+            if folder is not None:
+                raise ValueError(f"Folder with name '{name}' is already in database!")
+            parent_folder = _session.query(Folder).filter(Folder.path == str(Path(name).parent)).one_or_none()
+            if parent_folder is None:
+                raise ValueError(f"Can't find parent folder for {name} in DB!")
+            result = data.create_dir(name)
+            if result is not False:
+                folder = self._add_folder(_session, get_data_dir() / result)
+                _session.flush()
+                parent_folder.folders.append(folder)
+        return result
 
     def delete_dir(self, name):
-        # TODO: remove folder with it's children from database
-        return data.delete_dir(name)
+        name = name.strip("/")
+        self.update()
+        _session = self.session()
+        with _session.begin():
+            folder = _session.query(Folder).filter(Folder.path == name).one_or_none()
+            if folder is None:
+                raise ValueError(f"Folder with name '{name}' wasn't found in database!")
+            result = data.delete_dir(name)
+            self._remove_path(_session, get_data_dir() / folder.path)
+            return result
 
     def open_file(self, path):
         # TODO: only if it's latest db
@@ -449,8 +762,10 @@ class ArchDB(object):
     def get_all_tags(self, force=False):
         # NOTE: force arg is for compatibility with tags.py
         self.update()
-        tags = [tag.name for tag in self._session.query(Tag).all()]
-        return tags
+        _session = self.session()
+        with _session.begin():
+            tags = [tag.name for tag in _session.query(Tag).all()]
+            return tags
 
     def select_by_tags(self, selected_tags):
         """
@@ -459,83 +774,88 @@ class ArchDB(object):
         - list with dict items, containing nested tags names and occurrences count
         """
         self.update()
-        if selected_tags is None or len(selected_tags) == 0:
-            all_tags = self._session.query(Tag).all()
-            result_tags = sorted([{'tag': t.name, 'count': len(t.documents)} for t in all_tags], key = lambda x: x['tag'].lower())
-            return [], result_tags
-        docs = self._session.query(Document).all()
-        selected_tags = [tag.lower() for tag in selected_tags]
-        items = []
-        for item in docs:
-            item_tags = [tag.name.lower() for tag in item.tags]
-            if all(tag in item_tags for tag in selected_tags):
-                items.append(item)
-        nested_tags = {}
-        for item in items:
-            for tag in item.tags:
-                tag_name = tag.name.lower()
-                if tag_name in selected_tags:
-                    continue
-                if tag_name not in nested_tags:
-                    nested_tags[tag_name] = 0
-                nested_tags[tag_name] += 1
+        _session = self.session()
+        with _session.begin():
+            if selected_tags is None or len(selected_tags) == 0:
+                all_tags = _session.query(Tag).all()
+                result_tags = sorted([{'tag': t.name, 'count': len(t.documents)} for t in all_tags], key = lambda x: x['tag'].lower())
+                return [], result_tags
+            docs = _session.query(Document).all()
+            selected_tags = [tag.lower() for tag in selected_tags]
+            items = []
+            for item in docs:
+                item_tags = [tag.name.lower() for tag in item.tags]
+                if all(tag in item_tags for tag in selected_tags):
+                    items.append(item)
+            nested_tags = {}
+            for item in items:
+                for tag in item.tags:
+                    tag_name = tag.name.lower()
+                    if tag_name in selected_tags:
+                        continue
+                    if tag_name not in nested_tags:
+                        nested_tags[tag_name] = 0
+                    nested_tags[tag_name] += 1
 
-        result_tags = sorted([{'tag': k, 'count': v} for k,v in nested_tags.items()], key = lambda x: x['tag'].lower())
-        return sorted([item.doc_id for item in items]), result_tags
+            result_tags = sorted([{'tag': k, 'count': v} for k,v in nested_tags.items()], key = lambda x: x['tag'].lower())
+            return sorted([item.doc_id for item in items]), result_tags
 
     def get_back_links(self, dataobj_id):
         # TODO: should return same result as search
         self.update()
-
-        item = (
-            self._session.query(Document)
-            .filter(Document.doc_id == dataobj_id)
-            .one_or_none()
-        )
-        if item is None:
-            return []
-        backlinks = {}
-        for link in item.refbacks:
-            src = (
-                self._session.query(Document)
-                .filter(Document.ID == link.source_id)
+        _session = self.session()
+        with _session.begin():
+            item = (
+                _session.query(Document)
+                .filter(Document.doc_id == dataobj_id)
                 .one_or_none()
             )
-            if src is None:
-                continue
-            # TODO: fixup DB structure and simply use src = link.source.doc_id
-            if src.doc_id not in backlinks:
-                backlinks[src.doc_id] = []
-            backlinks[src.doc_id].append((link.full, item.title))
-        result = []
-        for doc_id, v in backlinks.items():
-            matches = []
-            for text, title in v:
-                matches.append(text)
-            result.append({
-                'id': doc_id,
-                'title': title,
-                'matches': matches,
-            })
+            if item is None:
+                return []
+            backlinks = {}
+            for link in item.refbacks:
+                src = (
+                    _session.query(Document)
+                    .filter(Document.ID == link.source_id)
+                    .one_or_none()
+                )
+                if src is None:
+                    continue
+                # TODO: fixup DB structure and simply use src = link.source.doc_id
+                if src.doc_id not in backlinks:
+                    backlinks[src.doc_id] = []
+                backlinks[src.doc_id].append((link.full, item.title))
+            result = []
+            for doc_id, v in backlinks.items():
+                matches = []
+                for text, title in v:
+                    matches.append(text)
+                result.append({
+                    'id': doc_id,
+                    'title': title,
+                    'matches': matches,
+                })
 
-        return result
+            return result
 
     def is_tag_format(self, tag_name):
         return tags.is_tag_format(tag_name)
 
     def add_tag_to_index(self, tag_name):
         self.update()
-        tag = (
-            self._session.query(Tag)
-            .filter(Tag.name == tag_name)
-            .one_or_none()
-        )
-        if tag is None:
-            tag = Tag(
-                name = tag_name
+        _session = self.session()
+        with _session.begin():
+            tag = (
+                _session.query(Tag)
+                .filter(Tag.name == tag_name)
+                .one_or_none()
             )
-            self._session.add(tag)
-            self.flush()
+            if tag is None:
+                tag = Tag(
+                    name = tag_name
+                )
+                _session.add(tag)
+                _session.flush()
         return True
 
 
