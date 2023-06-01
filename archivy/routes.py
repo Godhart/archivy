@@ -318,7 +318,9 @@ def move_item(dataobj_id):
     try:
         if layer().move_item(dataobj_id, form.path.data):
             flash(f"Data successfully moved to {out_dir}.", "success")
-            return redirect(f"/dataobj/{dataobj_id}")
+            target_path = form.path.data.strip("/")
+            new_dataobj_id = target_path.replace("/", "--") + "--" + dataobj_id.split("--")[-1]
+            return redirect(f"/dataobj/{new_dataobj_id}")
         else:
             flash(f"Data could not be moved to {out_dir}.", "error")
             return redirect(f"/dataobj/{dataobj_id}")
