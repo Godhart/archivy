@@ -261,8 +261,7 @@ Failed to load from '{filepath}' due to exception:
         data['modified_at'] = dt.strftime(r"%x %H:%M")
         data['tags'] = []
 
-    if data.get('type', 'note') == 'note':
-        data["_file_path_"] = str(Path(filepath).absolute())
+    data["_file_path_"] = str(Path(filepath).absolute())
     try:
         if not failed:
             _override_note(data)
