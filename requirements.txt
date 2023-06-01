@@ -72,3 +72,5 @@ symbolator
 
 sqlalchemy
 # Flask-SQLAlchemy
+
+watchdog
