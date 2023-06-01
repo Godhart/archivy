@@ -58,7 +58,9 @@ def check_perms():
 @app.route("/")
 @app.route("/index")
 def index():
-    path = request.args.get("path", "").lstrip("/")
+    path = request.args.get("path", "").strip("/")
+    if path != "":
+        path += "/"
     try:
         files = layer().get_items(path=path)
         process_modified = lambda x: datetime.strptime(x.get("modified_at"), "%x %H:%M")
