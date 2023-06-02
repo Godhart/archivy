@@ -30,8 +30,6 @@ from sqlalchemy.orm import sessionmaker
 
 from frontmatter import Post
 
-from flask import current_app
-
 from archivy import data, tags
 from archivy.data import is_relative_to, Directory, load_data
 
