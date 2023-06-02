@@ -668,6 +668,21 @@ class ArchDB(object):
             } for item in items]
             return result
 
+    def search_items(self, key):
+        self.update()
+        _session = self.session()
+        with _session.begin():
+            items = (
+                _session.query(Document)
+                .filter(or_(Document.doc_id.like("%"+key+"%"), Document.title.like("%"+key+"%")))
+                .all()
+            )
+            result = [{
+                'title': f"{item.title} ({item.doc_id})",
+                'id': item.doc_id
+            } for item in items]
+        return sorted(result, key=lambda x: x['id'])
+
     def move_item(self, dataobj_id, new_path):
         self.update()
         _session = self.session()
