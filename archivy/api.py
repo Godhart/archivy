@@ -233,9 +233,13 @@ def search_endpoint():
     if not current_app.config["SEARCH_CONF"]["enabled"]:
         return Response("Search is disabled", status=401)
     query = request.args.get("query")
-    start_path = request.args.get("start_path", None)
-    search_results = search(query, start_path=start_path)
-    return jsonify(search_results)
+    if query[:1] == "[" and query[-1:] == "]":
+        search_results = layer().search_items(query[1:-1])
+    else:
+        start_path = request.args.get("start_path", None)
+        search_results = search(query, start_path=start_path)
+    result = jsonify(search_results)
+    return result
 
 
 @api_bp.route("/images", methods=["POST"])
