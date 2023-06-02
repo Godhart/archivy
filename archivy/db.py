@@ -86,8 +86,8 @@ class ArchDB(object):
 
     def _fs_start_watchdog(self):
         # TODO: create and start FS watchdog
-        patterns = "*.md" # file patterns we want to handle
-        ignore_patterns = "" # patterns that we don’t want to handle
+        patterns = ["*.md"] # file patterns we want to handle
+        ignore_patterns = None # patterns that we don’t want to handle
         ignore_directories = False # True to be notified for regular files (not for directories)
         case_sensitive = True # made the patterns “case sensitive”
         self._fs_event_handler = PatternMatchingEventHandler(
