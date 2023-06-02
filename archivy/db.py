@@ -433,7 +433,7 @@ class ArchDB(object):
                     .filter(Link.source_id == obj.ID)
                     .all())
                 for link in obj_refs:   # TODO: use 'list(obj.refs)' after fixing DB
-                    session.delete[link]
+                    session.delete(link)
 
                 # Find all links within object
                 links_search = re.finditer(r"\[\[(?:([^|\]]+)\|)*(@?[^|#\]]+?)(#[^|\]]+)*\]\]", text)
