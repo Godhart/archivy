@@ -3,3 +3,21 @@
     font-size: 2em;
     border-bottom: 1px solid var(--mid-grey);
 }
+
+.markdown-body table td,
+.markdown-body table th {
+    padding: 6px 13px;
+    border: 1px solid var(--mid-grey);
+}
+.markdown-body table tr {
+    background-color: var(--dark-grey);
+    border-top: 1px solid var(--mid-grey);
+}
+.markdown-body table tr:nth-child(2n) {
+    background-color: var(--mid-dark-grey);
+}
+.markdown-body img {
+    max-width: 100%;
+    box-sizing: content-box;
+    background-color: var(--dark-grey);
+}
