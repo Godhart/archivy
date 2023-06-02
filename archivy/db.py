@@ -75,6 +75,7 @@ class ArchDB(object):
 
         self._fs_watchdog = None
         self._fs_event_handler = None
+        self._update_via_fs_watchdog_only = True
 
     def __del__(self):
         if self.latest:
@@ -756,7 +757,9 @@ class ArchDB(object):
             if doc is None:
                 raise ValueError(f"Document with ID '{dataobj_id}' is not found in database!")
             result = data.update_item_md(dataobj_id, new_content)
-            if result is not False:
+            if self._update_via_fs_watchdog_only:
+                db_result = True
+            elif result is not False:
                 db_result = self._update_path(_session, get_data_dir() / doc.path)
             else:
                 db_result = False
