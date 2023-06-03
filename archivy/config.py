@@ -32,17 +32,17 @@ class Config(object):
             "settings": {
                 "html": False,
                 "xhtmlOut": False,
-                "breaks": False,
+                "breaks": True,
                 "linkify": True,
-                "typographer": False,
+                "typographer": True,
             },
             "plugins": {
                 "markdownitFootnote": {},
                 "markdownitMark": {},
-                "markdownItAnchor": {"permalink": True, "permalinkSymbol": "¶"},
+                "markdownItAnchor": {"permalink": True, "permalinkSymbol": "#"},
                 "markdownItTocDoneRight": {},
             },
-            "spellcheck": False,
+            "spellcheck": True,
             "toolbar_icons": [
                 "bold",
                 "italic",
