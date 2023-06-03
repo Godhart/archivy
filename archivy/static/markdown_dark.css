@@ -21,3 +21,12 @@
     box-sizing: content-box;
     background-color: var(--dark-grey);
 }
+
+.warning {
+    background-color: rgb(65, 65, 29);
+    border-color: rgb(94, 94, 49);
+}
+
+.warning p::before {
+    color: #ffba10;
+}

@@ -418,3 +418,18 @@ h6:hover > .header-anchor,
 .toc-list ol { counter-reset: md-toc; padding-left: 0em; }
 .toc-list li { display: block; counter-increment: md-toc; }
 .toc-list li:before { content: counters(md-toc,'.') ' '; }
+
+.warning {
+    background-color: #ff8;
+    border-color: rgb(214, 214, 96);
+    padding: .5em;
+    border-radius: 6px;
+    border-width: 1px;
+    border-style: solid;
+}
+
+.warning p::before {
+    content: '\1F5F1\00a0';
+    color: #dd9e00;
+    font-size: 2em;
+}
