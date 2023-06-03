@@ -387,31 +387,31 @@ h6:hover > .header-anchor,
 .markdown-body h5   { counter-increment: md-h5; counter-reset:                         md-h6;}
 .markdown-body h6   { counter-increment: md-h6; }
 
-.markdown-body h1::before { content: counter(md-h1,decimal) '. '; }
+.markdown-body h1::before { content: counter(md-h1,decimal) '\00a0'; }
 .markdown-body h2::before { content: counter(md-h1,decimal) '.'
-                      counter(md-h2,decimal) '. '
+                      counter(md-h2,decimal) '\00a0'
 ;}
 .markdown-body h3::before { content: counter(md-h1,decimal) '.'
                       counter(md-h2,decimal) '.'
-                      counter(md-h3,decimal) '. '
+                      counter(md-h3,decimal) '\00a0'
 ;}
 .markdown-body h4::before { content: counter(md-h1,decimal) '.'
                       counter(md-h2,decimal) '.'
                       counter(md-h3,decimal) '.'
-                      counter(md-h4,decimal) '. '
+                      counter(md-h4,decimal) '\00a0'
 ;}
 .markdown-body h5::before { content: counter(md-h1,decimal) '.'
                       counter(md-h2,decimal) '.'
                       counter(md-h3,decimal) '.'
                       counter(md-h4,decimal) '.'
-                      counter(md-h5,decimal) '. '
+                      counter(md-h5,decimal) '\00a0'
 ;}
 .markdown-body h6::before { content: counter(md-h1,decimal) '.'
                       counter(md-h2,decimal) '.'
                       counter(md-h3,decimal) '.'
                       counter(md-h4,decimal) '.'
                       counter(md-h5,decimal) '.'
-                      counter(md-h6,decimal) '. '
+                      counter(md-h6,decimal) '\00a0'
 ;}
 
 .toc-list ul { padding-left: 0em; }
