@@ -33,27 +33,29 @@
   {% include "markdown-parser.html" %}
   {% if not view_only %}
     <link rel="stylesheet" href="/static/editor.css">
-      <link id="style_dark_editor" rel="stylesheet" href="/static/editor_dark.css"
-      {% if not config.THEME_CONF.get('use_theme_dark', False) %}
-      disabled=false
-      {% endif %}
-      >
-    <script type="text/javascript">
-    {
-      let custom_dark = localStorage.getItem("dark_theme");
-      if (custom_dark !== null) {
-        custom_dark = custom_dark == "true";
-        toggle_lights(!custom_dark);
-      }
-    }
-    </script>
+    <link id="style_dark_editor" rel="stylesheet" href="/static/editor_dark.css"
+    {% if not config.THEME_CONF.get('use_theme_dark', False) %}
+    disabled=false
+    {% endif %}
+    >
     <link rel="stylesheet" href="/static/accessibility.css">
     <script async src="/static/editor.js"></script>
   {% endif %}
   <link rel="stylesheet" href="/static/markdown.css">
-  {% if config.THEME_CONF.get('use_theme_dark', False) %}
-    <link rel="stylesheet" href="/static/markdown_dark.css">
-  {% endif %}
+  <link id="style_dark_markdown" rel="stylesheet" href="/static/markdown_dark.css"
+      {% if not config.THEME_CONF.get('use_theme_dark', False) %}
+      disabled=false
+      {% endif %}
+  >
+  <script type="text/javascript">
+  {
+    let custom_dark = localStorage.getItem("dark_theme");
+    if (custom_dark !== null) {
+      custom_dark = custom_dark == "true";
+      toggle_lights(!custom_dark);
+    }
+  }
+  </script>
   <div class="post-header">
     <!-- Form for editing the frontmatter -->
     <h2 id="post-title">
