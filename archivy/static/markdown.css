@@ -378,3 +378,43 @@ h6:hover > .header-anchor,
     background: #f6f8fa;
     border-top: 0;
 }
+
+.markdown-body body { counter-reset: md-h1 md-h2 md-h3 md-h4 md-h5 md-h6; }
+.markdown-body h1   { counter-increment: md-h1; counter-reset: md-h2 md-h3 md-h4 md-h5 md-h6;}
+.markdown-body h2   { counter-increment: md-h2; counter-reset:       md-h3 md-h4 md-h5 md-h6;}
+.markdown-body h3   { counter-increment: md-h3; counter-reset:             md-h4 md-h5 md-h6;}
+.markdown-body h4   { counter-increment: md-h4; counter-reset:                   md-h5 md-h6;}
+.markdown-body h5   { counter-increment: md-h5; counter-reset:                         md-h6;}
+.markdown-body h6   { counter-increment: md-h6; }
+
+.markdown-body h1::before { content: counter(md-h1,decimal) '. '; }
+.markdown-body h2::before { content: counter(md-h1,decimal) '.'
+                      counter(md-h2,decimal) '. '
+;}
+.markdown-body h3::before { content: counter(md-h1,decimal) '.'
+                      counter(md-h2,decimal) '.'
+                      counter(md-h3,decimal) '. '
+;}
+.markdown-body h4::before { content: counter(md-h1,decimal) '.'
+                      counter(md-h2,decimal) '.'
+                      counter(md-h3,decimal) '.'
+                      counter(md-h4,decimal) '. '
+;}
+.markdown-body h5::before { content: counter(md-h1,decimal) '.'
+                      counter(md-h2,decimal) '.'
+                      counter(md-h3,decimal) '.'
+                      counter(md-h4,decimal) '.'
+                      counter(md-h5,decimal) '. '
+;}
+.markdown-body h6::before { content: counter(md-h1,decimal) '.'
+                      counter(md-h2,decimal) '.'
+                      counter(md-h3,decimal) '.'
+                      counter(md-h4,decimal) '.'
+                      counter(md-h5,decimal) '.'
+                      counter(md-h6,decimal) '. '
+;}
+
+.toc-list ul { padding-left: 0em; }
+.toc-list ol { counter-reset: md-toc; padding-left: 0em; }
+.toc-list li { display: block; counter-increment: md-toc; }
+.toc-list li:before { content: counters(md-toc,'.') ' '; }
