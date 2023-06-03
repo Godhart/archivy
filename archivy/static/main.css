@@ -662,3 +662,7 @@ hr {
 }
 
 body { scroll-behavior: smooth; }
+
+svg {
+    background-color: rgba(255,255,255,0);
+}
