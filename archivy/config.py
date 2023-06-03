@@ -32,7 +32,7 @@ class Config(object):
             "settings": {
                 "html": False,
                 "xhtmlOut": False,
-                "breaks": True,
+                "breaks": False,
                 "linkify": True,
                 "typographer": True,
             },
@@ -50,9 +50,8 @@ class Config(object):
                 "markdownitIns" : {},
                 "markdownitSub" : {},
                 "markdownitSup" : {},
-                "markdownitContainer" : {},
             },
-            "spellcheck": True,
+            "spellcheck": False,
             "toolbar_icons": [
                 "bold",
                 "italic",
