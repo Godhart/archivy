@@ -41,6 +41,13 @@ class Config(object):
                 "markdownitMark": {},
                 "markdownItAnchor": {"permalink": True, "permalinkSymbol": "#"},
                 "markdownItTocDoneRight": {},
+                "markdownitAbbr" : {},
+                "markdownitDeflist" : {},
+                "markdownitEmoji" : {},
+                "markdownitIns" : {},
+                "markdownitSub" : {},
+                "markdownitSup" : {},
+                "markdownitContainer" : {},
             },
             "spellcheck": True,
             "toolbar_icons": [
