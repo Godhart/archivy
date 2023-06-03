@@ -1,24 +1,28 @@
-.markdown-body h1 {
-    padding-bottom: 0.3em;
-    font-size: 2em;
-    border-bottom: 1px solid var(--mid-grey);
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+    border-bottom-color: var(--mid-dark-grey);
+}
+
+.markdown-body hr {
+    background-color: var(--mid-dark-grey);
 }
 
 .markdown-body table td,
 .markdown-body table th {
-    padding: 6px 13px;
-    border: 1px solid var(--mid-grey);
+    border-color: var(--mid-grey);
 }
 .markdown-body table tr {
     background-color: var(--dark-grey);
-    border-top: 1px solid var(--mid-grey);
+    border-top-color: var(--mid-grey);
 }
 .markdown-body table tr:nth-child(2n) {
     background-color: var(--mid-dark-grey);
 }
 .markdown-body img {
-    max-width: 100%;
-    box-sizing: content-box;
     background-color: var(--dark-grey);
 }
 
