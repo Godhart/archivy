@@ -40,7 +40,10 @@ class Config(object):
                 "markdownitFootnote": {},
                 "markdownitMark": {},
                 "markdownItAnchor": {"permalink": True, "permalinkSymbol": "#"},
-                "markdownItTocDoneRight": {},
+                "markdownItTocDoneRight": {
+                    "listClass": "toc-list",
+                    "itemClass": "toc-list",
+                },
                 "markdownitAbbr" : {},
                 "markdownitDeflist" : {},
                 "markdownitEmoji" : {},
