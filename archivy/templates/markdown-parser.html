@@ -90,6 +90,7 @@ disabled=true
 <script src="/static/hdelk/hdelk.js"></script>
 
 <script>
+  window.md_containers = []
   window.parser = window.markdownit({
       {# The lower is needed to make JS understand Python bools #}
       {% for name, value in config.EDITOR_CONF.settings.items() %}
@@ -125,25 +126,35 @@ disabled=true
     delimiters:'dollars',
     katexOptions: { macros: {"\\RR": "\\mathbb{R}"} }
   })
-  .use(window.markdownitContainer, 'spoiler', {
+  .use(window.markdownitContainer,
+  ['styled', 'spoiler'], {
+    validate: function(params) {
+      return params.trim().match(/^(styled|spoiler)\s+(.*)$/);
+    },
 
-  validate: function(params) {
-    return params.trim().match(/^spoiler\s+(.*)$/);
-  },
+    render: function (tokens, idx) {
+      let m = tokens[idx].info.trim().match(/^(styled|spoiler)\s+(.*)$/);
 
-  render: function (tokens, idx) {
-    var m = tokens[idx].info.trim().match(/^spoiler\s+(.*)$/);
-
-    if (tokens[idx].nesting === 1) {
-      // opening tag
-      return '<details><summary>' + window.parser.utils.escapeHtml(m[1]) + '</summary>\n';
-
-    } else {
-      // closing tag
-      return '</details>\n';
+      if (tokens[idx].nesting === 1) {
+        // opening tag
+        window.md_containers.push(m)
+        if (m[1]=="styled") {
+          return '<div class="' + window.parser.utils.escapeHtml(m[2]) + '">\n';
+        } else if (m[1]=="spoiler") {
+          return '<details><summary>' + window.parser.utils.escapeHtml(m[2]) + '</summary>\n';
+        }
+      } else {
+        // closing tag
+        m = window.md_containers.pop()
+        if (m[1]=="styled") {
+          return '</div>\n';
+        } else if (m[1]=="spoiler") {
+          return '</details>\n';
+        }
+      }
     }
   }
-  })
+  )
   {% for plugin_name, plugin_params in config.EDITOR_CONF.plugins.items() %}
     .use(window.{{plugin_name}}{% if plugin_params | length %}, {{plugin_params|tojson}}{% endif %})
   {% endfor %}
