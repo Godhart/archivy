@@ -48,7 +48,7 @@ DB = {}
 
 class ArchDB(object):
 
-    def __init__(self, latest, sqlite_filepath):
+    def __init__(self, latest, sqlite_filepath, use_fs_watchdog=True):
         self._db_not_exists = False
         if latest:
             sqlite_filepath = os.environ.get("ARCHIVY_DBG_LATEST_DB") or ":memory:" # "file::memory:?cache=shared"
@@ -75,7 +75,8 @@ class ArchDB(object):
 
         self._fs_watchdog = None
         self._fs_event_handler = None
-        self._update_via_fs_watchdog_only = True
+        self._use_fw_watchdog = use_fs_watchdog
+        self._update_via_fs_watchdog_only = use_fs_watchdog
 
     def __del__(self):
         if self.latest:
@@ -86,7 +87,8 @@ class ArchDB(object):
                 self._fs_watchdog = None
 
     def _fs_start_watchdog(self):
-        # TODO: create and start FS watchdog
+        if not self._use_fw_watchdog:
+            return
         patterns = ["*.md"] # file patterns we want to handle
         ignore_patterns = None # patterns that we don’t want to handle
         ignore_directories = False # True to be notified for regular files (not for directories)
