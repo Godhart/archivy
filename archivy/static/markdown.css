@@ -165,7 +165,8 @@ h6:hover > .header-anchor,
     word-wrap: break-all;
 }
 .markdown-body li > p {
-    margin-top: 16px;
+    margin-top: 0;
+    margin-bottom: 0;
 }
 .markdown-body li+li {
     margin-top: 0.25em;
@@ -426,10 +427,18 @@ h6:hover > .header-anchor,
     border-radius: 6px;
     border-width: 1px;
     border-style: solid;
+    margin-left: 2em;
+    margin-right: 2em;
+    margin-top: 1em;
+    margin-bottom: 1em;
 }
 
 .warning p::before {
     content: '\1F5F1\00a0';
     color: #dd9e00;
-    font-size: 2em;
+    font-size: 1.5em;
+}
+
+.warning p {
+    margin-bottom: 0.1em;
 }

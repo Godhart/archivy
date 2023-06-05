@@ -11,26 +11,38 @@
     background-color: var(--mid-dark-grey);
 }
 
-.markdown-body table td,
 .markdown-body table th {
+    background-color: var(--mid-dark-grey);
     border-color: var(--mid-grey);
 }
+
+.markdown-body table td {
+    border-color: var(--mid-grey);
+}
+
 .markdown-body table tr {
     background-color: var(--dark-grey);
     border-top-color: var(--mid-grey);
 }
 .markdown-body table tr:nth-child(2n) {
-    background-color: var(--mid-dark-grey);
+    background-color: var(--dark-mid-grey);
 }
 .markdown-body img {
     background-color: var(--dark-grey);
 }
 
 .warning {
-    background-color: rgb(65, 65, 29);
-    border-color: rgb(94, 94, 49);
+    /* background-color: rgb(65, 57, 29);
+    border-color: rgb(94, 82, 49); */
+    background-color: rgba(19, 14, 0, 0.7);
+    border-color: rgb(141, 103, 0);
 }
 
 .warning p::before {
     color: #ffba10;
+}
+
+.warning p {
+    /* color: #ceab54; */
+    color: #d3c08f;
 }
