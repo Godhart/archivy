@@ -204,7 +204,9 @@
         <div id="page">
             {% if current_user.is_authenticated %}
                 <div id="sidebar" class="sidebar hidden">
+                <div class="sidebar-container">
                     {{ draw_dir(dataobjs, 0) }}
+                </div>
                 </div>
                 <script>
                 {
