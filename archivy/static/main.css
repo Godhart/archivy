@@ -669,6 +669,14 @@ hr {
     }
 }
 
+@media print
+{    
+    .no-print, .no-print *
+    {
+        display: none !important;
+    }
+}
+
 body { scroll-behavior: smooth; }
 
 svg {

@@ -152,10 +152,12 @@ input:focus:not([type="submit"]), input:hover:not([type="submit"]), select:focus
     background-color: var(--light-grey);
 }
 
-.image-auto {
-    filter: brightness(0.85) invert() hue-rotate(180deg);
-}
+@media screen {
+    .image-auto {
+        filter: brightness(0.85) invert() hue-rotate(180deg);
+    }
 
-.image-opposite {
-    filter: unset;
+    .image-opposite {
+        filter: unset;
+    }
 }
