@@ -126,7 +126,7 @@
             {% endif %}
         {%- endmacro %}
 
-        <div class="Header">
+        <div class="Header no-print">
             <div class="Header-item full">
                 <a class="Header-link" href="/">
                     <img src="/static/logo.png" alt="archivy logo" width="35" height="35">
@@ -203,7 +203,7 @@
         </div>
         <div id="page">
             {% if current_user.is_authenticated %}
-                <div id="sidebar" class="sidebar hidden">
+                <div id="sidebar" class="sidebar hidden no-print">
                 <div class="sidebar-container">
                     {% if backlinks %}
                       <ul id="backlinks" style="padding: 0">
