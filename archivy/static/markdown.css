@@ -420,6 +420,23 @@ h6:hover > .header-anchor,
 .toc-list li { display: block; counter-increment: md-toc; }
 .toc-list li:before { content: counters(md-toc,'.') ' '; }
 
+@media print
+{
+    .markdown-body h1   { page-break-before: avoid; }
+    .markdown-body h2   { page-break-after : avoid; }
+    .markdown-body h3   { page-break-after : avoid; }
+    .markdown-body h4   { page-break-after : avoid; }
+    .markdown-body h5   { page-break-after : avoid; }
+    .markdown-body h6   { page-break-after : avoid; }
+    .markdown-body table{ page-break-inside: auto;  }
+    .markdown-body tr   { page-break-inside: avoid; page-break-after:auto }
+    .markdown-body thead{ display:table-header-group; }
+    .markdown-body tfoot{ display:table-footer-group; }
+
+    .pagebreak-after    { page-break-after : always;}
+    .pagebreak-before   { page-break-before: always;}
+}
+
 .warning {
     background-color: #ff8;
     border-color: rgb(214, 214, 96);
