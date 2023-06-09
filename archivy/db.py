@@ -899,7 +899,7 @@ class ArchDB(object):
                     matches.append(text)
                 result.append({
                     'id': doc_id,
-                    'title': title,
+                    'title': src.title,
                     'matches': matches,
                 })
 
