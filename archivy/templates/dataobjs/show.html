@@ -119,22 +119,8 @@
   <div id="content-cont" class="markdown-body">
     <div id="content"></div>
       {% if not view_only %}
-        <textarea id="original-textarea" aria-label="Text editor"></textarea>
+        <textarea id="original-textarea" aria-label="Text editor" class="no-print"></textarea>
       {% endif %}
-
-    {% if backlinks %}
-      <ul id="backlinks" style="padding: 0">
-        <h1>Backlinks</h3>
-        {% for backlink in backlinks %}
-          <li><a href="/dataobj/{{ backlink['id'] }}">{{ backlink["title"] }}:</a></li>
-          {% if "matches" in backlink %}
-            {% for link in backlink["matches"] %}
-              <div class="backlink-markdown">{{ link }}</div>
-            {% endfor %}
-          {% endif %}
-        {% endfor %}
-      </ul>
-    {% endif %}
   </div>
   <br>
   {% if not view_only %}

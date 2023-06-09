@@ -205,6 +205,20 @@
             {% if current_user.is_authenticated %}
                 <div id="sidebar" class="sidebar hidden">
                 <div class="sidebar-container">
+                    {% if backlinks %}
+                      <ul id="backlinks" style="padding: 0">
+                        <h1>Backlinks</h1>
+                        {% for backlink in backlinks %}
+                          <li><a href="/dataobj/{{ backlink['id'] }}">{{ backlink["title"] }}</a></li>
+                          {# {% if "matches" in backlink %}
+                            {% for link in backlink["matches"] %}
+                              <div class="backlink-markdown">{{ link }}</div>
+                            {% endfor %}
+                          {% endif %} #}
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                    <h1>Catalog</h1>
                     {{ draw_dir(dataobjs, 0) }}
                 </div>
                 </div>
