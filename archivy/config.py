@@ -50,6 +50,10 @@ class Config(object):
                 "markdownitIns" : {},
                 "markdownitSub" : {},
                 "markdownitSup" : {},
+                "markdownItAttrs": {
+                    "allowedAttributes" : ["id", "class", "style"],
+                },
+
             },
             "spellcheck": False,
             "toolbar_icons": [
