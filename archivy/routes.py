@@ -271,7 +271,21 @@ def _show_dataobj(dataobj, dataobj_id):
 
 @app.route("/dataobj/<dataobj_id>")
 def show_dataobj(dataobj_id):
-    dataobj = layer().get_item(dataobj_id)
+    goto = request.args.get("goto", None)
+    if goto is not None:
+        try:
+            goto = int(goto)
+        except ValueError:
+            flash("Bad goto arg!", "error")
+            return redirect("/")
+        if goto in (-1, 1):
+            dataobj = layer().get_neighbor_item(dataobj_id, goto)
+            return redirect(f"/dataobj/{dataobj['id']}")
+        else:
+            flash("Bad goto arg!", "error")
+            return redirect("/")
+    else:
+        dataobj = layer().get_item(dataobj_id)
     return _show_dataobj(dataobj, dataobj_id)
 
 
