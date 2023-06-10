@@ -222,6 +222,8 @@
                     {{ draw_dir(dataobjs, 0) }}
                 </div>
                 </div>
+                {# NOTE: nav_buttons should be placed RIGHT AFTER sidebar due to special selector in CSS for case when sidebar is hidden#}
+                {% block nav_buttons %}{% endblock %}
                 <script>
                 {
                   let sidebar_hidden = localStorage.getItem("sidebar_hidden");
