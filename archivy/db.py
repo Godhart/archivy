@@ -969,7 +969,7 @@ class ArchDB(object):
                 # TODO: fixup DB structure and simply use src = link.source.doc_id
                 if src.doc_id not in backlinks:
                     backlinks[src.doc_id] = []
-                backlinks[src.doc_id].append((link.full, item.title))
+                    backlinks[src.doc_id].append((link.full, src.title))
             result = []
             for doc_id, v in backlinks.items():
                 matches = []
@@ -977,7 +977,7 @@ class ArchDB(object):
                     matches.append(text)
                 result.append({
                     'id': doc_id,
-                    'title': src.title,
+                    'title': title,
                     'matches': matches,
                 })
 
