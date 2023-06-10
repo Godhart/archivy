@@ -90,12 +90,16 @@
 
         {% set path = [] %}
         {% set i = namespace(value=0) %}
-        {% macro draw_dir(dir, depth) -%}
+        {% macro draw_dir(dir, depth, expanded) -%}
             {% set i.value = i.value + 1 %}
             {% if depth %}
                 {% do path.append(dir.name) %}
             {% endif %}
-            <div id="cont-{{i.value}}" class="folder-cont">
+            <div id="cont-{{i.value}}" class="folder-cont
+                        {% if current_path is defined %}
+                          {% if current_path[:SEP.join(path)|length] == SEP.join(path) or expanded or depth < 2 %} {% else %} hidden {% endif %}
+                        {% endif %}
+                        ">
                 <div class="folder-title d-flex">
                     <button class="expand-btn" onclick="createInteractive(this, {{i.value}});">
                         <svg class="octicon closed"
@@ -147,7 +151,7 @@
                     {% endfor %}
                 </ul>
                 {% for child_dir in dir.child_dirs.values() | sort(attribute="name") %}
-                    {{ draw_dir(child_dir, depth + 1) }}
+                    {{ draw_dir(child_dir, depth + 1, current_path.strip(SEP) == SEP.join(path)) }}
                 {% endfor %}
             </div>
             {% if depth %}
@@ -248,7 +252,7 @@
                       </ul>
                     {% endif %}
                     <h1>Catalog</h1>
-                    {{ draw_dir(dataobjs, 0) }}
+                    {{ draw_dir(dataobjs, 0, False) }}
                 </div>
                 </div>
                 {# NOTE: nav_buttons should be placed RIGHT AFTER sidebar due to special selector in CSS for case when sidebar is hidden#}
@@ -314,6 +318,8 @@
             // expand
             let parentDiv = btn.parentNode;
             let childNotes = document.querySelector(".items-" + id);
+            let hostNode = btn.parentNode.parentNode;
+            let subfolders = hostNode.getElementsByClassName("folder-cont");
             // check if expanded
             let expanded = window.getComputedStyle(childNotes).getPropertyValue("display") === "block";
             let icons = btn.querySelectorAll("svg");
@@ -328,7 +334,18 @@
               icons[0].style.display = "block";
               icons[1].style.display = "none";
             }
-
+            if (subfolders.length > 0) {
+              for (let subfolder of subfolders) {
+                if (subfolder.parentNode == hostNode) {
+                  if (!expanded && subfolder.classList.contains("hidden")) {
+                    subfolder.classList.toggle("hidden");
+                  }
+                  if (expanded && !subfolder.classList.contains("hidden")) {
+                    subfolder.classList.toggle("hidden");
+                  }
+                }
+              }
+            }
           }
 
         {% if current_user.is_authenticated %}
