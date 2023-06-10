@@ -166,5 +166,9 @@ input:focus:not([type="submit"]), input:hover:not([type="submit"]), select:focus
     color: var(--mid-grey);
 }
 .navigation:hover {
-color: var(--light-grey);
+    color: var(--light-grey);
+}
+
+.sidebar-doc-active {
+    background: var(--dark-grey);
 }

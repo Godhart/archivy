@@ -735,3 +735,8 @@ svg {
 #sidebar[display="none"] + a.navigation-prev {
   left: 0;
 }
+
+.sidebar-doc-active {
+    background: #bfffaf;
+    text-decoration: underline;
+}
