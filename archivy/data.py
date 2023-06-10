@@ -357,7 +357,7 @@ def update_item_frontmatter(dataobj_id, new_frontmatter):
     filename = get_by_id(dataobj_id)
     dataobj = load_data(filename)
     for key in list(new_frontmatter):
-        if key != 'title' or dataobj.get('type', 'note') != 'note':
+        if key not in ('title', 'order', 'nav-skip', 'nav-hide') or dataobj.get('type', 'note') != 'note':
             dataobj[key] = new_frontmatter[key]
             continue
         if key == 'title':
@@ -368,6 +368,18 @@ def update_item_frontmatter(dataobj_id, new_frontmatter):
             else:
                 dataobj[key] = new_frontmatter[key]
                 dataobj['_auto_title_'] = False
+            continue
+        if key == "order":
+            # Reset order to default
+            if new_frontmatter[key] == 999999:
+                if key in dataobj.metadata:
+                    del dataobj.metadata[key]
+            continue
+        if key in ("nav-skip", "nav-hide"):
+            # Reset nav-skip to default
+            if new_frontmatter[key] is False:
+                if key in dataobj.metadata:
+                    del dataobj.metadata[key]
             continue
 
     dataobj["modified_at"] = datetime.now().strftime("%x %H:%M")
