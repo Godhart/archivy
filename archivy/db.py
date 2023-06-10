@@ -171,10 +171,10 @@ class ArchDB(object):
     def _sort_items(self):
         self.update()
         def doc_key(doc: Document) -> tuple:
-            keys = [(-1, "--"), (doc.order, doc.title)]
+            keys = [(-1, "--"), (doc.order, doc.title.lower())]
             folder = doc.folder
             while isinstance(folder, Folder):
-                keys = [(folder.order, folder.name)] + keys
+                keys = [(folder.order, folder.name.lower())] + keys
                 if len(folder.parent) > 0:
                     folder = folder.parent[0]
                 else:
