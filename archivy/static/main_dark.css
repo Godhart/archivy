@@ -161,3 +161,10 @@ input:focus:not([type="submit"]), input:hover:not([type="submit"]), select:focus
         filter: unset;
     }
 }
+
+.navigation {
+    color: var(--mid-grey);
+}
+.navigation:hover {
+color: var(--light-grey);
+}
