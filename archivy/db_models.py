@@ -86,6 +86,8 @@ class Folder(Base):
     group_version_id = Column(Integer, ForeignKey("group_version.ID"))
     name        = Column(String)
     path        = Column(String)
+    order       = Column(Integer)
+    nav_hide    = Column(Boolean)
     documents   = relationship("Document", backref=backref("folder"))
     parent      = relationship(
         "Folder", secondary=folder__folder,
@@ -105,6 +107,9 @@ class Document(Base):
     doc_id      = Column(String)
     type        = Column(String)
     title       = Column(String)
+    order       = Column(Integer)
+    nav_skip    = Column(Boolean)
+    nav_hide    = Column(Boolean)
     timestamp   = Column(Integer)
     date        = Column(String)
     modified_at = Column(String)
