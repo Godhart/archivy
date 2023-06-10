@@ -706,7 +706,7 @@ svg {
 }
 
 .navigation-prev {
-  left: calc(22% - 27px);
+  left: min(calc(22% - 27px), calc(300px - 27px));
 }
 
 .navigation-next {
