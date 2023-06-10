@@ -73,10 +73,38 @@ class ArchDB(object):
         else:
             DB['stored'] = self
 
+        self.__sorted_items = None
+
         self._fs_watchdog = None
         self._fs_event_handler = None
         self._use_fw_watchdog = use_fs_watchdog
         self._update_via_fs_watchdog_only = use_fs_watchdog
+
+
+    @property
+    def _sorted(self):
+        # TODO: use DB
+        return self.__sorted_items is not None
+
+    @_sorted.setter
+    def _sorted(self, value):
+        # TODO: use DB
+        if value is False:
+            self.__sorted_items = None
+        else:
+            raise ValueError("_sorted property may be only set to False")
+
+    @property
+    def _sorted_items(self):
+        # TODO: use DB
+        if self.__sorted_items is None:
+            self._sort_items()
+        return self.__sorted_items
+
+    @_sorted_items.setter
+    def _sorted_items(self, value):
+        # TODO: use DB
+        self.__sorted_items = value
 
     def __del__(self):
         if self.latest:
@@ -134,10 +162,33 @@ class ArchDB(object):
     def update(self, force=False):
         if self._db_not_exists:
             self._db_not_exists = False
+            self._sorted = False
             _session = self.session()
             with _session.begin():
                 self._update_db(_session)
             self._fs_start_watchdog()
+
+    def _sort_items(self):
+        self.update()
+        def doc_key(doc: Document) -> tuple:
+            keys = [(-1, "--"), (doc.order, doc.title)]
+            folder = doc.folder
+            while isinstance(folder, Folder):
+                keys = [(folder.order, folder.name)] + keys
+                if len(folder.parent) > 0:
+                    folder = folder.parent[0]
+                else:
+                    folder = None
+            return tuple(keys)
+
+        _session = self.session()
+        with _session.begin():
+            items = _session.query(Document).filter(
+                Document.nav_skip == False, Document.nav_hide == False
+            ).all()
+            items = [item for item in items if item.folder.nav_hide == False]
+            sorted_items = sorted(items, key=lambda x: doc_key(x))
+            self._sorted_items = tuple([item.doc_id for item in sorted_items])
 
     def _doc_to_post(self, doc: Document, load_content = True):
         content = ""
@@ -150,6 +201,8 @@ class ArchDB(object):
                 "id"    : doc.doc_id,
                 "type"  : doc.type,
                 "title" : doc.title,
+                "order" : doc.order,
+                "nav-skip": doc.nav_skip,
                 "date"  : doc.date,
                 "_file_path_": str(get_data_dir() / doc.path),
                 "modified_at" : doc.modified_at,
@@ -179,6 +232,9 @@ class ArchDB(object):
             doc_id      = post.metadata["id"],
             type        = post.metadata["type"],
             title       = post.metadata["title"],
+            order       = post.metadata.get("order", 999999),
+            nav_skip    = post.metadata.get("nav-skip", False),
+            nav_hide    = post.metadata.get("nav-skip", False),
             timestamp   = timestamp,
             date        = post.metadata["date"],
             modified_at = post.metadata["modified_at"],
@@ -193,9 +249,12 @@ class ArchDB(object):
         folder_path = Path(folder_path)
         folder = Folder(
             name = folder_path.parts[-1],
+            order = 999999,
+            nav_hide = False,
             path = str(folder_path.relative_to(get_data_dir())),
         )
         session.add(folder)
+        self._sorted = False
         return folder
 
     def _add_doc(self, session, path):
@@ -221,6 +280,7 @@ class ArchDB(object):
         doc = self._post_to_doc(post)
         session.add(doc)
         folder.documents.append(doc)
+        self._sorted = False
         return doc
 
     def _update_db(self, session, path=None):
@@ -268,6 +328,7 @@ class ArchDB(object):
         self._update_links(session, [start_folder], recurse=True)
         self._update_tags(session, [start_folder], recurse=True)
         session.flush()
+        self._sorted = False
 
     def _remove_doc(self, session, doc: Document, remove_tags=False, remove_parent=False):
         # Get list of tags that could become empty after doc removal
@@ -313,6 +374,7 @@ class ArchDB(object):
                     continue
                 session.delete(t)
 
+        self._sorted = False
         return True
 
     def _remove_folder(self, session, folder: Document, remove_tags=False, remove_parent=False):
@@ -336,6 +398,7 @@ class ArchDB(object):
                 session.delete(parent)
                 parent = next_parent
 
+        self._sorted = False
         return True
 
     def _remove_path(self, session, path, remove_tags=False, not_exist_ok=False, remove_parent=False):
@@ -655,6 +718,21 @@ class ArchDB(object):
             if post['dir'] in (".", "/"):
                 post['dir'] = ""
             return post
+
+    def get_neighbor_item(self, dataobj_id, goto):
+        sorted_items = self._sorted_items
+        try:
+            idx = sorted_items.index(dataobj_id)
+        except ValueError:
+            return None
+
+        if idx + goto < 0:
+            neighbor = sorted_items[-1]
+        elif idx + goto >= len(sorted_items):
+            neighbor = sorted_items[0]
+        else:
+            neighbor = sorted_items[idx + goto]
+        return self.get_item(neighbor)
 
     def lookup_items(self, key):
         self.update()
