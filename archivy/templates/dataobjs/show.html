@@ -6,6 +6,15 @@
 {% endif %}
 {% endblock %}
 
+{% block nav_buttons %}
+  <a href="/dataobj/{{ dataobj['id'] }}?goto=-1" class="navigation navigation-prev no-print" aria-label="Previous page">
+    <p class="navigation-icon navigation-icon-prev"></p>
+  </a>
+  <a href="/dataobj/{{ dataobj['id'] }}?goto=1" class="navigation navigation-next no-print" aria-label="Next page" style="margin-right: 0px;">
+    <p class="navigation-icon navigation-icon-next"></p>
+  </a>
+{% endblock %}
+
 {% block content %}
 
 {% set search_enabled = config['SEARCH_CONF']['enabled'] %}
