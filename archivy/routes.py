@@ -121,7 +121,7 @@ def new_bookmark():
     path = request.args.get("path", default_dir).strip("/")
     # handle empty argument
     form.path.data = path
-    return render_template("dataobjs/new.html", title="New Bookmark", form=form)
+    return render_template("dataobjs/new.html", title="New Bookmark", form=form, current_path=path)
 
 
 @app.route("/notes/new", methods=["GET", "POST"])
@@ -143,7 +143,7 @@ def new_note():
     path = request.args.get("path", default_dir).strip("/")
     # handle empty argument
     form.path.data = path
-    return render_template("/dataobjs/new.html", title="New Note", form=form)
+    return render_template("/dataobjs/new.html", title="New Note", form=form, current_path=path)
 
 
 @app.route("/tags-all")
