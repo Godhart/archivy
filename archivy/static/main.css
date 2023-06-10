@@ -163,6 +163,7 @@ form {
 }
 .sidebar {
     margin: 0;
+    margin-left: 7px;
     margin-right: 40px;
     padding: 0;
     width: 22%;
@@ -707,7 +708,7 @@ svg {
 }
 
 .navigation-prev {
-  left: min(calc(22% - 27px), calc(300px - 27px));
+  left: min(calc(22% - 25px), calc(300px - 25px));
 }
 
 .navigation-next {
