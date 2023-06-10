@@ -171,6 +171,7 @@ form {
     position: sticky;
     top: 0;
     border-right: 5px solid #48BB78;
+    align-self: flex-start;
 }
 .sidebar-container {
     width: 100%;
