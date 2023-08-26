@@ -60,9 +60,9 @@ class ArchDB(object):
         self._sqlite_file_path = sqlite_filepath
 
         if sqlite_filepath == ":memory:":
-            engine = create_engine("sqlite:///file:latest?mode=memory&cache=shared&uri=true") # , echo=True, future=True
+            engine = create_engine("sqlite:///file:latest?mode=memory&cache=shared&uri=true&check_same_thread=False") # , echo=True, future=True
         else:
-            engine = create_engine(f"sqlite:///{sqlite_filepath}")
+            engine = create_engine(f"sqlite:///{sqlite_filepath}?check_same_thread=False")
 
         # engine = create_engine(f"sqlite:///{sqlite_filepath}")
         Base.metadata.create_all(engine)
