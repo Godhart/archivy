@@ -84,3 +84,7 @@ data/
 .internal_dir
 .out
 .render-cache
+
+# Stuff related to run in docker
+!docker/.config/.keep
+!docker/.data/.keep
