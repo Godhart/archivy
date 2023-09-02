@@ -278,7 +278,7 @@ class DataObj:
             data.get("date", "01/01/70").replace("-", "/"), "%x"
         )
         dataobj["modified_at"] = datetime.strptime(
-            data.get("modified_at", "01/01/1970 00:00"), "%x %H:%M"
+            data.get("modified_at", "01/01/70 00:00"), "%x %H:%M"
         )
         dataobj["type"] = "processed-dataobj"
         return cls(**dataobj)
