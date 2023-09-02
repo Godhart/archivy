@@ -289,7 +289,10 @@ def search(query, strict=False, start_path=None):
 
     If using ES, specify strict=True if you only want results that strictly match the query, without parsing / tokenization.
     """
-    if current_app.config["SEARCH_CONF"]["engine"] == "elasticsearch":
+    force_rg = query[:2].lower() == "r:"
+    if force_rg:
+        query = query[2:]
+    if not force_rg and current_app.config["SEARCH_CONF"]["engine"] == "elasticsearch":
         return query_es_index(query, strict=strict)
     elif current_app.config["SEARCH_CONF"]["engine"] == "ripgrep" or which("rg"):
         return query_ripgrep(query, start_path=start_path)
