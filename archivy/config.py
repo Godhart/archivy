@@ -53,7 +53,7 @@ class Config(object):
                 "markdownItAttrs": {
                     "allowedAttributes" : ["id", "class", "style"],
                 },
-
+                "markdownitTaskLists": {},
             },
             "spellcheck": False,
             "toolbar_icons": [
