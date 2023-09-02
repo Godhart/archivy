@@ -68,7 +68,7 @@ readability-lxml
 
 pycairo
 PyGObject
-symbolator
+# symbolator
 
 sqlalchemy
 # Flask-SQLAlchemy
