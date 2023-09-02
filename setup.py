@@ -14,8 +14,8 @@ with open("requirements.txt", encoding="utf-8") as f:
 setuptools.setup(
     name="archivy",
     version="1.7.4",
-    author="Uzay-G",
-    author_email="halcyon@disroot.org",
+    author="Uzay-G, Godhart",
+    author_email="halcyon@disroot.org, godhart@gmail.com",
     description=(
         "Minimalist knowledge base focused on digital preservation"
         " and building your second brain."
