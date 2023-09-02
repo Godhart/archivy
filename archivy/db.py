@@ -107,7 +107,7 @@ class ArchDB(object):
         self.__sorted_items = value
 
     def __del__(self):
-        if self.latest:
+        if self._latest:
             # Stop FS watchdog
             if self._fs_watchdog is not None:
                 self._fs_watchdog.stop()
