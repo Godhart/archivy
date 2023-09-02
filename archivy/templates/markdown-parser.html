@@ -41,11 +41,8 @@ disabled=true
 <script src="/static/markdown-it-sup.min.js"></script>              <!-- https://www.npmjs.com/package/markdown-it-sup -->
 
 <script src="/static/markdown-it-attrs.browser.js"></script>        <!-- https://www.npmjs.com/package/@gerhobbelt/markdown-it-attrs -->
-<script src="/static/markdown-it-imsize.min.js"></script>           <!-- https://www.npmjs.com/package/markdown-it-imsize -->
-<script src="/static/markdown-it-inline-comments.min.js"></script>  <!-- https://www.npmjs.com/package/markdown-it-inline-comments -->
-<script src="/static/markdown-it-linkscheme.min.js"></script>       <!-- https://www.npmjs.com/package/markdown-it-multimd-table/v/4.2.2 -->
+<script src="/static/markdown-it-task-lists.min.js"></script>       <!-- https://www.npmjs.com/package/markdown-it-task-list-plus -->
 <!-- <script src="/static/markdown-it-multimd-table.min.js"></script>    <!-- https://www.npmjs.com/package/markdown-it-multimd-table/v/4.2.2 -->
-<script src="/static/markdown-it-task-list-plus.min.js"></script>   <!-- https://www.npmjs.com/package/markdown-it-task-list-plus -->
 
 <script src="/static/render.js"></script>
 <script type="text/javascript">
@@ -167,6 +164,7 @@ disabled=true
     .use(window.{{plugin_name}}{% if plugin_params | length %}, {{plugin_params|tojson}}{% endif %})
   {% endfor %}
   window.parser.customRender = function(content) {
+    // TODO: don't process within code sections
     let tag_regex = new RegExp("(^|\\n| )#([-_a-zA-ZÀ-ÖØ-öø-ÿА-Яа-я0-9]+)#", "g");
     let note_link_regex = /\[\[(.+)\|([\wÀ-ÖØ-öø-ÿА-Яа-я-]+)(#[\wÀ-ÖØ-öø-ÿА-Яа-я-]+)?\]\]/g;
     let note_lookup_regex = /\[\[(.+)\|@([\wÀ-ÖØ-öø-ÿА-Яа-я-]+)(#[\wÀ-ÖØ-öø-ÿА-Яа-я-]+)?\]\]/g;
@@ -174,7 +172,7 @@ disabled=true
     content = content.replace(tag_regex, "$1[#$2](/tags/$2)");
     content = content.replace(note_link_regex, "[[[$1]]](/dataobj/$2$3)");
     content = content.replace(note_lookup_regex, "[[[$1]]](/dataobj/lookup/$2$3)");
-    content = content.replace(comments_regex, "");
+    // content = content.replace(comments_regex, "");
     return window.parser.render(content);
   }
 </script>
