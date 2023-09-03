@@ -17,8 +17,13 @@ services:
     volumes:
       - ./.data:/archivy/data # this mounts the ./archivy_data/ folder from the host's working directory into the container
       - ./.config:/archivy/.local/share/archivy # this mounts the docker-managed archivy_config volume from the host's working directory into the container
-    environment: {}
-      # - ELASTICSEARCH_ENABLED=0
+    environment:
+      ARCHIVY_VIEW_ONLY         : False
+      ARCHIVY_SHOW_PLUGINS      : False
+      ARCHIVY_SHOW_BOOKMARKLET  : False
+      ARCHIVY_SHOW_SETTINGS     : False
+      ARCHIVY_SHOW_USEREDIT     : False
+      RENDER_DEFAULT_RAWSVG     : True
   elasticsearch:
     image: elasticsearch:7.9.0
     container_name: elasticsearch
