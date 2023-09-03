@@ -34,3 +34,6 @@ services:
 
 volumes:
   elasticsearch_data:
+
+# Update index with:
+# docker exec -it archivy archivy index
