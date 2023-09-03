@@ -86,5 +86,7 @@ data/
 .render-cache
 
 # Stuff related to run in docker
+docker/.config/*
+docker/.data/*
 !docker/.config/.keep
 !docker/.data/.keep
