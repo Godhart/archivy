@@ -274,12 +274,20 @@ class DataObj:
                 # this handles that scenario as validation will simply fail and the event will
                 # be ignored
                 break
-        dataobj["date"] = datetime.strptime(
-            data.get("date", "01/01/70").replace("-", "/"), "%x"
-        )
-        dataobj["modified_at"] = datetime.strptime(
-            data.get("modified_at", "01/01/70 00:00"), "%x %H:%M"
-        )
+        try:
+            dataobj["date"] = datetime.strptime(
+                data.get("date", "01/01/70").replace("-", "/"), "%x"
+            )
+        except ValueError as e:
+            dataobj["date"] = datetime.fromtimestamp(0)
+
+        try:
+            dataobj["modified_at"] = datetime.strptime(
+                data.get("modified_at", "01/01/70 00:00"), "%x %H:%M"
+            )
+        except ValueError as e:
+            dataobj["date"] = datetime.fromtimestamp(0)
+
         dataobj["type"] = "processed-dataobj"
         return cls(**dataobj)
 
