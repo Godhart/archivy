@@ -5,6 +5,7 @@ import json
 
 from flask import current_app
 
+from archivy.constants import IPS
 from archivy.helpers import get_elastic_client
 
 from archivy.hacks import Hacks
@@ -102,7 +103,7 @@ def parse_ripgrep_line(line):
         curr_file = (
             Path(hit["data"]["path"]["text"]).parts[-1].replace(".md", "").split("-")
         )  # parse target note data from path
-        curr_id = str(Path(hit["data"]["path"]["text"]).relative_to(get_data_dir())).replace("/", "--")[:-3]
+        curr_id = str(Path(hit["data"]["path"]["text"]).relative_to(get_data_dir())).replace("/", IPS)[:-3]
         title = curr_file[-1].replace("_", " ")
         data = {"title": title, "matches": [], "id": curr_id}
     elif hit["type"] == "match":
@@ -248,7 +249,7 @@ def query_ripgrep_tags_selection(tags):
         tag = tag.replace("#", "").lstrip()
         if path[:2] in ("./", ".\\"):
             path = path[2:]
-        obj_id = path.replace('/', '--').replace('\\', '--')
+        obj_id = path.replace('/', IPS).replace('\\', IPS)
         if obj_id not in obj_tags:
             obj_tags[obj_id] = []
         obj_tags[obj_id].append(tag)

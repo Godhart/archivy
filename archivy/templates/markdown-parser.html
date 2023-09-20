@@ -166,8 +166,8 @@ disabled=true
   window.parser.customRender = function(content) {
     // TODO: don't process within code sections
     let tag_regex = new RegExp("(^|\\n| )#([-_a-zA-ZÀ-ÖØ-öø-ÿА-Яа-я0-9]+)#", "g");
-    let note_link_regex = /\[\[(.+)\|([\wÀ-ÖØ-öø-ÿА-Яа-я-]+)(#[\wÀ-ÖØ-öø-ÿА-Яа-я-]+)?\]\]/g;
-    let note_lookup_regex = /\[\[(.+)\|@([\wÀ-ÖØ-öø-ÿА-Яа-я-]+)(#[\wÀ-ÖØ-öø-ÿА-Яа-я-]+)?\]\]/g;
+    let note_link_regex =   new RegExp("\\[\\[(.+)\\|((?:[\\wÀ-ÖØ-öø-ÿА-Яа-я-]/?)*?(?:[\\wÀ-ÖØ-öø-ÿА-Яа-я-]))(#[\\wÀ-ÖØ-öø-ÿА-Яа-я-]+)?\\]\\]", "g");
+    let note_lookup_regex = new RegExp("\\[\\[(.+)\\|@((?:[\\wÀ-ÖØ-öø-ÿА-Яа-я-]/?)*?(?:[\\wÀ-ÖØ-öø-ÿА-Яа-я-]))(#[\\wÀ-ÖØ-öø-ÿА-Яа-я-]+)?\\]\\]", "g");
     let comments_regex = /<!--(?:.|\n)*?-->/g;
     content = content.replace(tag_regex, "$1[#$2](/tags/$2)");
     content = content.replace(note_link_regex, "[[[$1]]](/dataobj/$2$3)");

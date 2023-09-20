@@ -20,6 +20,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from archivy.models import DataObj, User
 from archivy import app, forms, csrf
+from archivy.constants import IPS
 from archivy.db import layer
 from archivy.data import image_exists2, valid_image_filename
 from archivy.helpers import get_db, write_config, is_safe_redirect_url
@@ -166,7 +167,7 @@ def select_tags():
 
     items = []
     for obj_id in obj_ids:
-        items.append({'id': obj_id, 'path': obj_id.replace('--', '/')})
+        items.append({'id': obj_id, 'path': obj_id.replace(IPS, '/')})
 
     selected_tags_href = []
     for tag in selected_tags:
@@ -269,8 +270,9 @@ def _show_dataobj(dataobj, dataobj_id):
     )
 
 
-@app.route("/dataobj/<dataobj_id>")
-def show_dataobj(dataobj_id):
+@app.route("/dataobj/<path:path>")
+def show_dataobj(path):
+    dataobj_id = path
     goto = request.args.get("goto", None)
     if goto is not None:
         try:
@@ -322,8 +324,9 @@ def select_dataobj(key):
     )
 
 
-@app.route("/dataobj/move/<dataobj_id>", methods=["POST"])
-def move_item(dataobj_id):
+@app.route("/dataobj/move/<path:path>", methods=["POST"])
+def move_item(path):
+    dataobj_id = path
     form = forms.MoveItemForm()
     out_dir = form.path.data if form.path.data != "" else "root directory"
     if form.path.data == None:
@@ -333,7 +336,7 @@ def move_item(dataobj_id):
         if layer().move_item(dataobj_id, form.path.data):
             flash(f"Data successfully moved to {out_dir}.", "success")
             target_path = form.path.data.strip("/")
-            new_dataobj_id = target_path.replace("/", "--") + "--" + dataobj_id.split("--")[-1]
+            new_dataobj_id = target_path.replace("/", IPS) + IPS + dataobj_id.split(IPS)[-1]
             return redirect(f"/dataobj/{new_dataobj_id}")
         else:
             flash(f"Data could not be moved to {out_dir}.", "error")
@@ -346,15 +349,16 @@ def move_item(dataobj_id):
         return redirect(f"/dataobj/{dataobj_id}")
 
 
-@app.route("/dataobj/delete/<dataobj_id>", methods=["POST"])
-def delete_data(dataobj_id):
+@app.route("/dataobj/delete/<path:path>", methods=["POST"])
+def delete_data(path):
+    dataobj_id = path
     try:
         layer().delete_item(dataobj_id)
     except BaseException:
         flash("Data could not be found!", "error")
         return redirect("/")
     flash("Data deleted!", "success")
-    parent_path = Path(dataobj_id.replace("--", "/")).parent
+    parent_path = Path(dataobj_id.replace(IPS, "/")).parent
     if parent_path == "":
         return redirect("/")
     else:

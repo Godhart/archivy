@@ -22,6 +22,7 @@ from werkzeug.security import generate_password_hash
 from werkzeug.datastructures import FileStorage
 
 from archivy import helpers
+from archivy.constants import IPS
 from archivy.db import layer
 from archivy.data import valid_image_filename, save_image
 from archivy.search import add_to_index
@@ -206,7 +207,7 @@ class DataObj:
             for tag in self.tags:
                 layer('tags').add_tag_to_index(tag)
             if self.type == 'note':
-                self.id = os.path.join(self.path, str(self.title)).replace(' ', '_').replace('/', "--").replace('\\', "--")
+                self.id = os.path.join(self.path, str(self.title)).replace(' ', '_').replace('/', IPS).replace('\\', IPS)
                 file_name = f"{self.title}".replace(' ', '_')
             else:
                 self.id = md5(str(self.title).encode()).hexdigest()

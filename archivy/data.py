@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
 from archivy.search import remove_from_index
-
+from archivy.constants import IPS
 from archivy.hacks import Hacks
 get_data_dir = Hacks.get_data_dir
 
@@ -44,7 +44,7 @@ FILE_GLOB = "[0-9]*-*.md"
 
 def get_by_id(dataobj_id):
     """Returns filename of dataobj of given id"""
-    dataobj_id = dataobj_id.replace("--", SEP)
+    dataobj_id = dataobj_id.replace(IPS, SEP)
     results = list(get_data_dir().rglob(f"{dataobj_id}.md"))
     return results[0] if results else None
 
@@ -198,7 +198,7 @@ def get_item(dataobj_id):
 
 def lookup_items(key):
     """Returns list of IDs with post objects, matching key"""
-    key = key.replace("--", SEP)
+    key = key.replace(IPS, SEP)
     glob_results = list(get_data_dir().rglob(f"{key}.md"))
     if not glob_results:
         return []
@@ -210,7 +210,7 @@ def lookup_items(key):
         if r_str[:2] == "./":
             r_str = r_str[2:]
         results.append({
-            'id': r_str.replace('/', '--'),
+            'id': r_str.replace('/', IPS),
             'path': r_str,
         })
     return results

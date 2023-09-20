@@ -89,8 +89,9 @@ def create_note():
     return Response(status=400)
 
 
-@api_bp.route("/dataobjs/<dataobj_id>")
-def get_dataobj(dataobj_id):
+@api_bp.route("/dataobjs/<path:path>")
+def get_dataobj(path):
+    dataobj_id = path
     """Returns dataobj of given id"""
     dataobj = layer().get_item(dataobj_id)
 
@@ -106,8 +107,9 @@ def get_dataobj(dataobj_id):
     )
 
 
-@api_bp.route("/dataobjs/<dataobj_id>", methods=["DELETE"])
-def delete_dataobj(dataobj_id):
+@api_bp.route("/dataobjs/<path:path>", methods=["DELETE"])
+def delete_dataobj(path):
+    dataobj_id = path
     """Deletes object of given id"""
     if not layer().get_item(dataobj_id):
         return Response(status=404)
@@ -115,8 +117,8 @@ def delete_dataobj(dataobj_id):
     return Response(status=204)
 
 
-@api_bp.route("/dataobjs/<dataobj_id>", methods=["PUT"])
-def update_dataobj(dataobj_id):
+@api_bp.route("/dataobjs/<path:path>", methods=["PUT"])
+def update_dataobj(path):
     """
     Updates object of given id.
 
@@ -124,6 +126,7 @@ def update_dataobj(dataobj_id):
 
     - **content**: markdown text of new dataobj.
     """
+    dataobj_id = path
     if request.json.get("content"):
         try:
             layer().update_item_md(dataobj_id, request.json.get("content"))
@@ -133,8 +136,8 @@ def update_dataobj(dataobj_id):
     return Response("Must provide content parameter", status=401)
 
 
-@api_bp.route("/dataobjs/frontmatter/<dataobj_id>", methods=["PUT"])
-def update_dataobj_frontmatter(dataobj_id):
+@api_bp.route("/dataobjs/frontmatter/<path:path>", methods=["PUT"])
+def update_dataobj_frontmatter(path):
     """
     Updates frontmatter of object of given id.
 
@@ -143,7 +146,7 @@ def update_dataobj_frontmatter(dataobj_id):
     - **title**: (optional) the new title of the dataobj.
     - **tags**:  (optional) the tags.
     """
-
+    dataobj_id = path
     new_frontmatter = {}
     for key in ("title", "tags", ):
         if key in request.json:
@@ -178,8 +181,9 @@ def add_tag_to_index():
     return Response("Must provide valid tag name.", status=401)
 
 
-@api_bp.route("/dataobj/local_edit/<dataobj_id>", methods=["GET"])
-def local_edit(dataobj_id):
+@api_bp.route("/dataobj/local_edit/<path:path>", methods=["GET"])
+def local_edit(path):
+    dataobj_id = path
     dataobj = layer().get_item(dataobj_id)
     if dataobj:
         layer().open_file(dataobj["fullpath"])

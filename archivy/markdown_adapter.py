@@ -11,8 +11,8 @@ from flask import current_app
 from pathlib import Path
 import time
 from datetime import datetime
-import shutil
 
+from archivy.constants import IPS
 from archivy.render.pandoc import import_pandoc
 
 from archivy.render.common import to_abs_path
@@ -214,7 +214,7 @@ def _override_note(data):
         if filepath is not None:
             filepath = Path(filepath)
             relative_path = filepath.relative_to(get_data_dir())
-            data['id'] = str(relative_path).replace(SEP, "--")[:-3]
+            data['id'] = str(relative_path).replace(SEP, IPS)[:-3]
             data['path'] = str(relative_path.parent).replace(SEP, "/")
             title = relative_path.stem.replace('_', ' ')
             m = re.match(r"^(\d+(?:[.]\d+)?)[-](.+)$", title)

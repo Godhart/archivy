@@ -31,6 +31,7 @@ from sqlalchemy.orm import sessionmaker
 from frontmatter import Post
 
 from archivy import data, tags
+from archivy.constants import IPS
 from archivy.data import is_relative_to, Directory, load_data
 
 from archivy.db_models import Base
@@ -171,7 +172,7 @@ class ArchDB(object):
     def _sort_items(self):
         self.update()
         def doc_key(doc: Document) -> tuple:
-            keys = [(-1, "--"), (doc.order, doc.title.lower())]
+            keys = [(-1, IPS), (doc.order, doc.title.lower())]
             folder = doc.folder
             while isinstance(folder, Folder):
                 keys = [(folder.order, folder.name.lower())] + keys
@@ -214,7 +215,7 @@ class ArchDB(object):
         return post
 
     def _post_to_doc(self, post, folder_path=None):
-        doc_name = post.metadata["id"].split("--")[-1]
+        doc_name = post.metadata["id"].split(IPS)[-1]
         try:
             timestamp   = int(datetime.strptime(post.metadata["modified_at"], r"%x %H:%M").timestamp())
         except Exception as e:
